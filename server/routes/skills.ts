@@ -7,8 +7,7 @@ skillsRouter.post('/scan', async (req, res, next) => {
   try {
     const result = await scanSkills({
       roots: Array.isArray(req.body?.roots) ? req.body.roots : [],
-      projectPath: req.body?.projectPath,
-      includeBuiltIn: req.body?.includeBuiltIn
+      projectPath: req.body?.projectPath
     });
     res.json(result);
   } catch (error) {

@@ -1,3 +1,56 @@
+# 2026-06-04 追加任务：真实本机 Skill 扫描
+
+- [x] 8. 真实本机 Skill 扫描
+  - [x] 8.1 服务端自动追加本机常见 Skill 根目录，不再只依赖 Settings 中手动配置的路径。
+  - [x] 8.2 扫描 Codex/Agents/Claude 用户目录与 Codex 插件缓存目录，提升本机真实 Skill 覆盖率。
+  - [x] 8.3 为本地扫描结果返回完整 `SKILL.md` 文件路径。
+  - [x] 8.4 Skill Registry 头部展示 Local / Merged / Builtin 数量，并在详情面板展示完整 `SKILL.md` 文件路径。
+  - [x] 8.5 提高本地递归扫描深度，覆盖 Codex 插件缓存中的深层 `SKILL.md` 文件。
+
+## 追加验证记录
+
+- `npm.cmd run lint`：通过。
+- `npm.cmd run build`：通过。
+- 本地扫描函数验证：通过，返回 24 个 Skill 条目，其中 `merged: 9`、`local: 8`、`builtin: 7`，并返回真实 `SKILL.md` 文件路径。
+
+## 追加相关文件
+
+- `server/services/skillScanner.ts`：自动发现本机常见 Skill 根目录，扫描插件缓存，并返回本地 `SKILL.md` 文件路径。
+- `src/types.ts`：为 Skill 条目补充 `sourceFile` 字段。
+- `src/pages/SkillRegistry.tsx`：展示 Local / Merged / Builtin 来源计数，并在详情中显示完整 `SKILL.md` 文件路径。
+- `TASKS.md`：记录本次真实本机 Skill 扫描修复任务、验证项与相关文件。
+
+# 2026-06-04 追加任务：彻底改为真实本机 Skill 扫描
+
+- [x] 9. 真实本机 Skill 扫描 Local-Only 化
+  - [x] 9.1 删除内置 `knownSkills` 假数据文件，扫描结果不再混入示例 Skill。
+  - [x] 9.2 服务端扫描 API 只返回真实解析到的本地 `SKILL.md` 文件。
+  - [x] 9.3 前端扫描结果增加客户端过滤，旧后端返回的非本地条目也不会展示。
+  - [x] 9.4 Registry 初始为空，刷新后必须重新扫描才显示 Skill。
+  - [x] 9.5 清除旧浏览器持久化扫描缓存，避免继续显示历史 `Detected: 17`。
+  - [x] 9.6 Project Setup 必须先扫描到真实本地 Skill，才允许生成推荐策略。
+  - [x] 9.7 排除 Codex 插件缓存中的 `plugin-backup-*` 备份目录。
+
+## 追加验证记录
+
+- `npm.cmd run lint`：通过。
+- `npm.cmd run build`：通过。
+- 本地扫描函数验证：通过，`scannerMode: local-only`，`scannerVersion: local-skill-scan-v2`，返回 16 个真实本地 `SKILL.md` 文件，`warnings: []`。
+
+## 追加相关文件
+
+- `server/services/skillScanner.ts`：移除内置数据合并，只扫描本机真实 `SKILL.md`，并排除插件备份目录。
+- `server/routes/skills.ts`：移除 `includeBuiltIn` 扫描参数。
+- `src/api/client.ts`：对扫描结果做本地真实性过滤，并把旧后端的缺失目录 ENOENT 从 WARN 转为 INFO。
+- `src/core/knownSkills.ts`：删除内置假 Skill Registry 数据文件。
+- `src/pages/SkillRegistry.tsx`：Registry 默认空列表，只展示真实本地 Skill，并显示扫描器版本与 `SKILL.md` 路径。
+- `src/pages/Dashboard.tsx`：Dashboard 扫描入口改为 local-only 扫描。
+- `src/pages/ProjectSetup.tsx`：没有真实扫描结果时禁止生成推荐。
+- `src/pages/PolicyBuilder.tsx`：策略页只从真实扫描结果读取 Skill 详情。
+- `src/store.ts`：不再持久化扫描结果，并在加载旧缓存时强制清空旧扫描数据。
+- `src/types.ts`：收窄 Skill 来源类型，并补充扫描器模式/版本字段。
+- `TASKS.md`：记录本次 local-only 扫描修复、验证结果和相关文件。
+
 # SkillGate Implementation Tasks
 
 ## 执行规则
@@ -120,3 +173,76 @@
 - `src/types.ts`：补充 Skill 来源类型、来源验证状态和扫描 INFO 提示字段。
 - `src/pages/SkillRegistry.tsx`：展示 Skill 来源徽标与详情中的本地 `SKILL.md` 验证状态，并区分 WARN 与 INFO。
 - `TASKS.md`：追加记录本次来源透明化任务、验证项与相关文件。
+# 2026-06-04 追加任务：本地 Skill 扫描链路诊断与旧后端拦截
+
+- [x] 10. 本地 Skill 扫描链路诊断与旧后端拦截
+  - [x] 10.1 复现当前 `localhost:8787` API 返回旧版内置假数据、无 `sourceFile`、无 `scannerVersion` 的问题。
+  - [x] 10.2 服务端扫描结果补充 `rootReports`，展示每个根目录的扫描状态和命中 `SKILL.md` 数量。
+  - [x] 10.3 客户端检测旧后端/假数据响应，直接提示重启 `npm.cmd run server`，避免静默过滤后显示 `Detected: 0`。
+  - [x] 10.4 Registry 页面展示扫描根目录诊断，便于确认真实 skill 根目录是否被读取。
+  - [x] 10.5 修正 YAML 字符串解析，避免 `name: "xxx"` 显示为带引号名称。
+  - [x] 10.6 服务端增加端口占用兜底，8787 被旧进程占用时自动尝试 8788/8789/8790。
+  - [x] 10.7 客户端扫描接口增加多端口探测，遇到旧后端假数据时继续寻找新版扫描服务。
+
+## 追加验证记录
+
+- 直接读取真实 Skill：通过，`C:\Users\MR\.agents\skills\karpathy-guidelines\SKILL.md` 存在且为 Codex 可用 skill。
+- 本地扫描函数验证：通过，返回 16 个真实本地 `SKILL.md` 文件。
+- 8787 端口旧服务复现：通过，确认旧服务返回无 `sourceFile` 的内置假数据，会被 local-only 前端过滤为 0。
+- `npm.cmd run lint`：通过。
+- `npm.cmd run build`：通过。
+- 端口兜底验证：通过，旧 8787 不动时新版服务落到 8788，返回 16 个真实本地 `SKILL.md`，`scannerVersion: local-skill-scan-v3`。
+
+## 追加相关文件
+
+- `server/services/skillScanner.ts`：新增扫描根目录诊断 `rootReports`，升级扫描器版本为 `local-skill-scan-v3`，并修正 YAML 引号解析。
+- `server/index.ts`：增加本地 CORS 支持和 8787-8790 端口占用兜底。
+- `src/api/client.ts`：识别旧后端返回的无真实 `SKILL.md` 假数据，并给出重启后端的明确错误。
+- `src/pages/SkillRegistry.tsx`：展示每个扫描根目录的状态和命中数量。
+- `src/types.ts`：补充 `ScanRootReport` 与扫描结果诊断字段。
+- `TASKS.md`：记录本次扫描链路诊断、验证结果和相关文件。
+
+# 2026-06-04 追加任务：开发启动与端口发现修复
+
+- [x] 11. 开发启动与端口发现修复
+  - [x] 11.1 将开发启动命令调整为同时启动前端和本地 API，避免只运行前端时继续命中旧后端。
+  - [x] 11.2 将普通 API 请求与扫描 API 一样支持 8787-8790 多端口探测，兼容后端自动端口兜底。
+  - [x] 11.3 更新本次验证记录和相关文件说明。
+
+## 追加验证记录
+
+- `npm.cmd run lint`：通过。
+- `npm.cmd run build`：通过。
+- `node --check scripts\dev.mjs`：通过。
+- 运行时验证：通过，旧 8787 不动时新版后端自动落到 `http://localhost:8788`，`/api/health` 返回 `scannerVersion: local-skill-scan-v3`，`/api/skills/scan` 返回 16 个真实本地 `SKILL.md` 文件，且 16 个条目都有 `sourceFile`。
+
+## 追加相关文件
+
+- `package.json`：将 `dev` 调整为同时启动前端和本地 API，并保留 `dev:frontend` 作为纯前端启动命令。
+- `scripts/dev.mjs`：新增本地开发并发启动脚本，统一拉起 API 与 Vite。
+- `src/api/client.ts`：普通 API 请求增加新版后端 health 探测和 8787-8790 多端口发现。
+- `server/index.ts`：health endpoint 返回当前本地扫描器模式与版本，供前端识别新版后端。
+- `server/services/skillScanner.ts`：导出扫描器版本常量，避免 health 与扫描结果版本漂移。
+- `TASKS.md`：记录本次开发启动与端口发现修复任务。
+
+# 2026-06-04 追加任务：GitHub README 完善与版本推送
+
+- [ ] 12. GitHub README 完善与版本推送
+  - [x] 12.1 将 README 改写为适合作为 GitHub 仓库首页的完整项目介绍。
+  - [x] 12.2 在 README 顶部展示本地 `logo.png`，替换默认模板 banner。
+  - [x] 12.3 README 使用项目作者视角与项目陈述，不出现对话式助手文案。
+  - [ ] 12.4 完成验证、提交并推送到 GitHub `main` 分支。
+
+## 追加验证记录
+
+- `npm.cmd run lint`：通过。
+- `npm.cmd run build`：通过。
+- `node --check scripts\dev.mjs`：通过。
+- 本地提交：通过，commit `00ef7c6 完善本地扫描与文档`。
+- 远端推送：未完成，`git push origin main` 两次超时；远端 `main` 仍为 `04cec255c2f9c5aa8df87e4d74c9f8a2afa7ee54`，本地 `main` 领先 1 个提交。
+
+## 追加相关文件
+
+- `README.md`：重写 GitHub 仓库首页文档，包含项目定位、核心能力、真实本机 Skill 扫描、工作流程、API、架构、目录结构、常见问题和 Roadmap。
+- `logo.png`：作为 README 顶部品牌图展示。
+- `TASKS.md`：记录 README 完善与版本推送任务。

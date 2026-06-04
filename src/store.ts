@@ -2,11 +2,8 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { classifyRequirement } from './core/classifyRequirement';
 import { detectConflicts } from './core/detectConflicts';
-import { knownSkills } from './core/knownSkills';
 import { resolveSkills } from './core/resolveSkills';
 import { GlobalSettings, ProjectSkillProfile, ProjectSkillState, ScanResult } from './types';
-
-export { knownSkills };
 
 const LOCAL_STORAGE_KEY = 'skillgate-v1-storage';
 
@@ -71,7 +68,8 @@ export const useStore = create<SkillGateState>()(
           skill.skillId === skillId ? { ...skill, ...updates } : skill
         );
 
-        const conflictResult = detectConflicts({ selectedSkills: newSkills, registry: knownSkills });
+        const registry = state.skillRegistry?.skills || [];
+        const conflictResult = detectConflicts({ selectedSkills: newSkills, registry });
         const updatedProfile = {
           ...state.profile,
           skills: newSkills,
@@ -89,13 +87,14 @@ export const useStore = create<SkillGateState>()(
         if (!state.profile) return state;
 
         const classification = classifyRequirement(requirement);
-        const newSkills = resolveSkills({ skills: knownSkills, classification });
+        const registry = state.skillRegistry?.skills || [];
+        const newSkills = resolveSkills({ skills: registry, classification });
         const updatedProfile = {
           ...state.profile,
           requirement,
           detectedProjectType: classification.projectType,
           skills: newSkills,
-          conflicts: detectConflicts({ selectedSkills: newSkills, registry: knownSkills }).conflicts,
+          conflicts: detectConflicts({ selectedSkills: newSkills, registry }).conflicts,
           updatedAt: new Date().toISOString()
         };
 
@@ -126,6 +125,22 @@ export const useStore = create<SkillGateState>()(
     }),
     {
       name: LOCAL_STORAGE_KEY,
+      partialize: (state) => ({
+        profile: state.profile,
+        recentProfiles: state.recentProfiles,
+        settings: state.settings,
+        lastScanTime: null,
+        skillRegistry: null
+      }),
+      merge: (persistedState, currentState) => {
+        const persisted = persistedState as Partial<SkillGateState>;
+        return {
+          ...currentState,
+          ...persisted,
+          lastScanTime: null,
+          skillRegistry: null
+        };
+      },
     }
   )
 );

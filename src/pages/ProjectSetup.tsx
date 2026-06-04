@@ -55,6 +55,10 @@ export default function ProjectSetup() {
       setAnalysisError('Please enter a project path before analysis.');
       return;
     }
+    if (!skillRegistry || skillRegistry.skills.length === 0) {
+      setAnalysisError('Scan local skills first. SkillGate only recommends from verified local SKILL.md files.');
+      return;
+    }
 
     setAnalyzing(true);
     setAnalysisError('');
