@@ -1,9 +1,9 @@
+import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { useStore } from '../store';
+import BlueprintIllustration from '../components/BlueprintIllustration';
 import ProgressBar from '../components/ProgressBar';
 import ScrambleText from '../components/ScrambleText';
-import BlueprintIllustration from '../components/BlueprintIllustration';
-import { useState } from 'react';
+import { useStore } from '../store';
 
 export default function Dashboard() {
   const profile = useStore(state => state.profile);
@@ -21,8 +21,7 @@ export default function Dashboard() {
     if (isScanning) return;
     setIsScanning(true);
     setScanProgress(0);
-    
-    // Simulate mechanical scanning process
+
     let current = 0;
     const interval = setInterval(() => {
       current += Math.random() * 15;
@@ -30,7 +29,7 @@ export default function Dashboard() {
         current = 100;
         clearInterval(interval);
         setLastScanTime(new Date().toLocaleTimeString());
-        setTimeout(() => setIsScanning(false), 500); // Wait half a second before removing progress bar
+        setTimeout(() => setIsScanning(false), 500);
       }
       setScanProgress(current);
     }, 200);
@@ -42,16 +41,16 @@ export default function Dashboard() {
         <h2 className="text-display mb-2 border-l-8 border-ink pl-4"><ScrambleText text="DASHBOARD" /></h2>
         <div className="flex items-center gap-4 font-mono text-sm mt-4">
           <span className="bg-ink text-paper px-2 py-1 uppercase">Enforcement Level: Soft Policy</span>
-          <span className="text-muted hidden md:inline">SkillGate will generate project-level instructions. It does not hard-disable agent skills in V1.</span>
+          <span className="text-muted hidden md:inline">SkillGate generates project-level instructions. It does not hard-disable agent skills in V1.</span>
         </div>
       </header>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
         <section className="flex flex-col h-full">
-          <div className="ascii-divider !mt-0 !mb-4">░░░░░░░░░░ PROJECT SUMMARY ░░░░░░░░░░</div>
+          <div className="ascii-divider !mt-0 !mb-4">========== PROJECT SUMMARY ==========</div>
           {profile ? (
             <div className="border border-solid border-ink p-6 bg-blueprint-grid h-full relative">
-              <div className="absolute top-0 right-0 bg-ink text-paper font-mono text-caption px-2 py-1 uppercase tracking-wide">
+              <div className="absolute top-0 right-0 bg-ink text-paper font-mono text-caption px-2 py-1 uppercase">
                 FIG_01: METADATA
               </div>
               <ul className="list-none p-0 m-0 w-full mt-4">
@@ -99,7 +98,9 @@ export default function Dashboard() {
           ) : (
             <div className="border border-solid border-ink p-8 text-center bg-blueprint-grid h-full flex flex-col justify-center items-center">
               <BlueprintIllustration />
-              <p className="font-serif text-lg mb-6 max-w-sm mx-auto mt-6">尚未配置项目。请先创建一个 Project Skill Profile。</p>
+              <p className="font-serif text-lg mb-6 max-w-sm mx-auto mt-6">
+                尚未配置项目。请先创建一个 Project Skill Profile。
+              </p>
               <Link to="/setup" className="btn-terminal primary">
                 [ CREATE_PROJECT_PROFILE ]
               </Link>
@@ -108,7 +109,7 @@ export default function Dashboard() {
         </section>
 
         <section>
-          <div className="ascii-divider !mt-0 !mb-4">░░░░░░░░░░ SKILL STATUS ░░░░░░░░░░</div>
+          <div className="ascii-divider !mt-0 !mb-4">========== SKILL STATUS ==========</div>
           <div className="grid gap-4">
             {profile ? (
               <>
@@ -135,7 +136,7 @@ export default function Dashboard() {
       </div>
 
       <section>
-        <div className="ascii-divider !mt-12 !mb-6">░░░░░░░░░░ RECENT POLICIES ░░░░░░░░░░</div>
+        <div className="ascii-divider !mt-12 !mb-6">========== RECENT POLICIES ==========</div>
         <div className="border border-solid border-ink bg-paper overflow-x-auto">
           <table className="w-full text-left font-mono">
             <thead className="bg-ink text-paper font-mono text-caption uppercase">
@@ -158,8 +159,8 @@ export default function Dashboard() {
                     </td>
                     <td className="py-3 px-4 text-sm text-muted">{new Date(p.updatedAt).toLocaleString()}</td>
                     <td className="py-3 px-4 text-right space-x-2">
-                       <button onClick={() => { loadProfile(p.id); navigate('/policy'); }} className="font-mono text-caption uppercase border border-solid border-ink px-2 py-1 hover:bg-ink hover:text-paper transition-none">Load</button>
-                       <button onClick={() => deleteProfile(p.id)} className="font-mono text-caption uppercase border border-solid border-ink px-2 py-1 text-red-600 hover:bg-red-600 hover:text-paper transition-none">Delete</button>
+                      <button onClick={() => { loadProfile(p.id); navigate('/policy'); }} className="font-mono text-caption uppercase border border-solid border-ink px-2 py-1 hover:bg-ink hover:text-paper transition-none">Load</button>
+                      <button onClick={() => deleteProfile(p.id)} className="font-mono text-caption uppercase border border-solid border-ink px-2 py-1 text-red-600 hover:bg-red-600 hover:text-paper transition-none">Delete</button>
                     </td>
                   </tr>
                 ))
@@ -176,23 +177,23 @@ export default function Dashboard() {
       </section>
 
       <section>
-        <div className="ascii-divider !mt-12 !mb-6">░░░░░░░░░░ QUICK ACTIONS ░░░░░░░░░░</div>
+        <div className="ascii-divider !mt-12 !mb-6">========== QUICK ACTIONS ==========</div>
         <div className="flex flex-wrap items-center gap-4 border border-dotted border-ink p-6 bg-paper">
           <Link to="/setup" className="btn-terminal border-b-2">New Project Profile</Link>
-          <button 
-            className="btn-terminal border-b-2 disabled:opacity-50" 
-            onClick={startScan} 
+          <button
+            className="btn-terminal border-b-2 disabled:opacity-50"
+            onClick={startScan}
             disabled={isScanning}
           >
             Scan Local Skills
           </button>
-          
+
           {isScanning && (
             <div className="flex-1 ml-4 hidden sm:block">
               <ProgressBar progress={scanProgress} label="LOCATING FILES" isSimulating={true} />
             </div>
           )}
-          
+
           <div className="w-full sm:hidden mt-4">
             {isScanning && <ProgressBar progress={scanProgress} label="SCAN" isSimulating={true} />}
           </div>

@@ -13,18 +13,18 @@
 
 ## 当前进度
 
-- 当前章节：2. 修复基础可运行性
-- 当前子任务：2.1 安装或恢复依赖，确认 `npm.cmd run lint` 能实际执行。
+- 当前章节：3. Core 业务逻辑层
+- 当前子任务：3.1 新增 Skill Registry 数据模块并替换 `store.ts` 内硬编码 knownSkills。
 
 ## 任务清单
 
 - [x] 1. 任务清单初始化
   - [x] 1.1 创建 `TASKS.md`，写入执行规则、章节任务、当前进度、相关文件栏目。
 
-- [ ] 2. 修复基础可运行性
-  - [ ] 2.1 安装或恢复依赖，确认 `npm.cmd run lint` 能实际执行。
-  - [ ] 2.2 修复当前 TypeScript/JSX 字符串、乱码和编译错误。
-  - [ ] 2.3 跑通 `npm.cmd run lint` 和 `npm.cmd run build`。
+- [x] 2. 修复基础可运行性
+  - [x] 2.1 安装或恢复依赖，确认 `npm.cmd run lint` 能实际执行。
+  - [x] 2.2 修复当前 TypeScript/JSX 字符串、乱码和编译错误。
+  - [x] 2.3 跑通 `npm.cmd run lint` 和 `npm.cmd run build`。
 
 - [ ] 3. Core 业务逻辑层
   - [ ] 3.1 新增 Skill Registry 数据模块并替换 `store.ts` 内硬编码 knownSkills。
@@ -57,3 +57,10 @@
 ## 相关文件
 
 - `TASKS.md`：记录项目后端落地、前端接线、验证和分章提交推送的执行清单。
+- `src/store.ts`：维护当前前端状态、内置 Skill 数据、临时需求分类和推荐逻辑；第二章修复乱码业务文案。
+- `src/App.tsx`：修复侧边栏选中标记乱码并清理无用导入。
+- `src/pages/ProjectSetup.tsx`：修复项目配置页可见乱码、示例需求和模式说明。
+- `src/pages/PolicyBuilder.tsx`：修复策略编辑页可见乱码、高风险提示、冲突说明和小改动规则。
+- `src/pages/Dashboard.tsx`：修复首页空状态、分区标题和软策略说明的可见乱码。
+- `src/pages/Settings.tsx`：修复设置页危险区域标题乱码并保留现有设置结构。
+- `.gitignore`：忽略 npm 本地缓存目录 `.npm-cache/`。

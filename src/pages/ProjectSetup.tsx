@@ -1,10 +1,10 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import FileTreePicker from '../components/FileTreePicker';
+import ScrambleText from '../components/ScrambleText';
 import { useStore } from '../store';
 import { ProjectSkillProfile } from '../types';
-import ScrambleText from '../components/ScrambleText';
 import { soundEngine } from '../utils/useSound';
-import FileTreePicker from '../components/FileTreePicker';
 
 export default function ProjectSetup() {
   const setProfile = useStore(state => state.setProfile);
@@ -20,15 +20,13 @@ export default function ProjectSetup() {
   const [language, setLanguage] = useState(existingProfile?.language || '');
   const [mode, setMode] = useState(existingProfile?.defaultMode || 'Frontend Mode');
   const [requirement, setRequirement] = useState(existingProfile?.requirement || '');
-  const [targets, setTargets] = useState<Array<"codex" | "claude-code" | "generic">>(existingProfile?.targets || ['codex', 'claude-code']);
+  const [targets, setTargets] = useState<Array<'codex' | 'claude-code' | 'generic'>>(existingProfile?.targets || ['codex', 'claude-code']);
   const [analyzing, setAnalyzing] = useState(false);
   const [analysisLogs, setAnalysisLogs] = useState<string[]>([]);
   const [showPicker, setShowPicker] = useState(false);
-  
+
   const finishAnalysis = () => {
     const profileId = existingProfile?.id || `prj-${Date.now().toString(36)}-${Math.random().toString(36).substring(2, 6)}`;
-    
-    // Create skeleton profile
     const profile: ProjectSkillProfile = {
       id: profileId,
       version: '0.1.0',
@@ -39,14 +37,14 @@ export default function ProjectSetup() {
       framework,
       language,
       defaultMode: mode,
-      requirement: requirement,
-      targets: targets,
+      requirement,
+      targets,
       skills: [],
       conflicts: [],
       createdAt: existingProfile?.createdAt || new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
-    
+
     setProfile(profile);
     analyzeRequirement(requirement);
     navigate('/policy');
@@ -54,22 +52,22 @@ export default function ProjectSetup() {
 
   const handleAnalyze = () => {
     if (!path) return alert('Please enter project path');
-    
+
     setAnalyzing(true);
-    setAnalysisLogs(['STARTING AI REQUIREMENT ANALYSIS...']);
+    setAnalysisLogs(['STARTING REQUIREMENT ANALYSIS...']);
     soundEngine.playClick();
-    
+
     let step = 0;
     const steps = [
       'PARSING REQUIREMENT TEXT...',
       'EXTRACTING INTENT AND METADATA...',
-      'SCANNING ~/.../.skills REGISTRY...',
+      'SCANNING SKILL REGISTRY...',
       'MATCHING SKILLS TO INTENT...',
       'DETECTING POLICY CONFLICTS...',
       'SYNTHESIZING RESOLUTIONS...',
       'DONE. BUILDING POLICY.'
     ];
-    
+
     const interval = setInterval(() => {
       if (step < steps.length) {
         setAnalysisLogs(prev => [...prev, steps[step]]);
@@ -89,16 +87,19 @@ export default function ProjectSetup() {
     setRequirement('我要做一个淘宝网页，要有商品列表、搜索、购物车和结算页面，界面要像真实电商应用。');
     setName('taobao-demo');
     setPath('D:\\Projects\\taobao-demo');
+    setRepositoryType('Frontend App');
+    setFramework('React');
+    setLanguage('TypeScript');
     setMode('Ecommerce Mode');
   };
 
   const modes = [
-    { id: 'Minimal Mode', desc: '适合小改动、Bug 修复、文案调整，只启用最少 Skill。' },
+    { id: 'Minimal Mode', desc: '适合小改动、Bug 修复和文案调整，只启用最少 Skill。' },
     { id: 'Frontend Mode', desc: '适合普通前端应用开发。' },
-    { id: 'Design Mode', desc: '适合落地页、品牌页、作品集、视觉重构。' },
-    { id: 'Ecommerce Mode', desc: '适合电商网页、商品展示、购物车、结算流程。' },
-    { id: 'Docs Mode', desc: '适合文档、报告、说明书生成。' },
-    { id: 'Strict Mode', desc: '适合团队项目、生产项目、大型代码库，只允许白名单 Skill。' }
+    { id: 'Design Mode', desc: '适合落地页、品牌页、作品集和视觉重构。' },
+    { id: 'Ecommerce Mode', desc: '适合电商网页、商品展示、购物车和结算流程。' },
+    { id: 'Docs Mode', desc: '适合文档、报告和说明书生成。' },
+    { id: 'Strict Mode', desc: '适合团队项目、生产项目和大型代码库，只允许白名单 Skill。' }
   ];
 
   return (
@@ -106,9 +107,9 @@ export default function ProjectSetup() {
       <header className="border-b-2 border-solid border-ink pb-4 flex items-center justify-between">
         <div>
           <h2 className="text-display min-h-[1.2em] border-l-8 border-ink pl-4">
-             <ScrambleText text="PROJECT SETUP" />
+            <ScrambleText text="PROJECT SETUP" />
           </h2>
-          <div className="font-mono text-sm text-muted uppercase tracking-wide mt-2">
+          <div className="font-mono text-sm text-muted uppercase mt-2">
             Define boundaries & analyze requirements
           </div>
         </div>
@@ -118,25 +119,27 @@ export default function ProjectSetup() {
         <div className="absolute top-0 right-0 bg-ink text-paper font-mono text-caption px-2 py-1 uppercase">
           FIG_01: METADATA
         </div>
-        
+
         <div className="space-y-6">
           <div>
             <label className="block font-mono text-sm uppercase mb-2">Project Path</label>
             <div className="flex gap-4">
-              <input 
-                type="text" 
+              <input
+                type="text"
                 value={path}
                 onChange={e => setPath(e.target.value)}
                 placeholder="D:\Projects\my-app"
                 className="input-typewriter flex-1 text-base"
               />
-              <button 
+              <button
                 className="btn-terminal whitespace-nowrap"
                 onClick={() => {
                   soundEngine.playClick();
                   setShowPicker(true);
                 }}
-              >Browse</button>
+              >
+                Browse
+              </button>
               <button className="btn-terminal whitespace-nowrap">Scan</button>
             </div>
             {!path && (
@@ -145,8 +148,8 @@ export default function ProjectSetup() {
               </p>
             )}
             {showPicker && (
-              <FileTreePicker 
-                onClose={() => setShowPicker(false)} 
+              <FileTreePicker
+                onClose={() => setShowPicker(false)}
                 onSelect={(p) => {
                   setPath(p);
                   setShowPicker(false);
@@ -160,88 +163,48 @@ export default function ProjectSetup() {
             <div className="space-y-6">
               <div>
                 <label className="block font-mono text-sm uppercase mb-2">Project Name</label>
-                <input 
-                  type="text" 
-                  value={name}
-                  onChange={e => setName(e.target.value)}
-                  className="input-typewriter w-full text-base"
-                />
+                <input type="text" value={name} onChange={e => setName(e.target.value)} className="input-typewriter w-full text-base" />
               </div>
               <div>
                 <label className="block font-mono text-sm uppercase mb-2">Description</label>
-                <input 
-                  type="text" 
-                  value={description}
-                  onChange={e => setDescription(e.target.value)}
-                  className="input-typewriter w-full text-base"
-                />
+                <input type="text" value={description} onChange={e => setDescription(e.target.value)} className="input-typewriter w-full text-base" />
               </div>
               <div>
                 <label className="block font-mono text-sm uppercase mb-2">Repository Type</label>
-                <input 
-                  type="text" 
-                  value={repositoryType}
-                  onChange={e => setRepositoryType(e.target.value)}
-                  placeholder="e.g., Frontend App"
-                  className="input-typewriter w-full text-base"
-                />
+                <input type="text" value={repositoryType} onChange={e => setRepositoryType(e.target.value)} placeholder="e.g., Frontend App" className="input-typewriter w-full text-base" />
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block font-mono text-sm uppercase mb-2">Framework</label>
-                  <input 
-                    type="text" 
-                    value={framework}
-                    onChange={e => setFramework(e.target.value)}
-                    placeholder="e.g., React"
-                    className="input-typewriter w-full text-base"
-                  />
+                  <input type="text" value={framework} onChange={e => setFramework(e.target.value)} placeholder="e.g., React" className="input-typewriter w-full text-base" />
                 </div>
                 <div>
                   <label className="block font-mono text-sm uppercase mb-2">Language</label>
-                  <input 
-                    type="text" 
-                    value={language}
-                    onChange={e => setLanguage(e.target.value)}
-                    placeholder="e.g., TypeScript"
-                    className="input-typewriter w-full text-base"
-                  />
+                  <input type="text" value={language} onChange={e => setLanguage(e.target.value)} placeholder="e.g., TypeScript" className="input-typewriter w-full text-base" />
                 </div>
               </div>
             </div>
             <div>
               <label className="block font-mono text-sm uppercase mb-2">Target Agents</label>
               <div className="flex flex-col gap-2 font-mono text-sm">
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <span className="w-5">{targets.includes('codex') ? '[X]' : '[ ]'}</span>
-                  <input 
-                    type="checkbox" 
-                    className="hidden" 
-                    checked={targets.includes('codex')} 
-                    onChange={e => e.target.checked ? setTargets([...targets, 'codex']) : setTargets(targets.filter(t => t !== 'codex'))}
-                  />
-                  CODEX
-                </label>
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <span className="w-5">{targets.includes('claude-code') ? '[X]' : '[ ]'}</span>
-                  <input 
-                    type="checkbox" 
-                    className="hidden" 
-                    checked={targets.includes('claude-code')} 
-                    onChange={e => e.target.checked ? setTargets([...targets, 'claude-code']) : setTargets(targets.filter(t => t !== 'claude-code'))}
-                  />
-                  CLAUDE CODE
-                </label>
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <span className="w-5">{targets.includes('generic') ? '[X]' : '[ ]'}</span>
-                  <input 
-                    type="checkbox" 
-                    className="hidden" 
-                    checked={targets.includes('generic')} 
-                    onChange={e => e.target.checked ? setTargets([...targets, 'generic']) : setTargets(targets.filter(t => t !== 'generic'))}
-                  />
-                  GENERIC AGENT
-                </label>
+                {[
+                  ['codex', 'CODEX'],
+                  ['claude-code', 'CLAUDE CODE'],
+                  ['generic', 'GENERIC AGENT']
+                ].map(([id, label]) => (
+                  <label key={id} className="flex items-center gap-2 cursor-pointer">
+                    <span className="w-5">{targets.includes(id as 'codex' | 'claude-code' | 'generic') ? '[X]' : '[ ]'}</span>
+                    <input
+                      type="checkbox"
+                      className="hidden"
+                      checked={targets.includes(id as 'codex' | 'claude-code' | 'generic')}
+                      onChange={e => e.target.checked
+                        ? setTargets([...targets, id as 'codex' | 'claude-code' | 'generic'])
+                        : setTargets(targets.filter(t => t !== id))}
+                    />
+                    {label}
+                  </label>
+                ))}
               </div>
             </div>
           </div>
@@ -249,16 +212,14 @@ export default function ProjectSetup() {
       </section>
 
       <section>
-        <div className="ascii-divider">░░░░░░░░░░ PROJECT MODE ░░░░░░░░░░</div>
+        <div className="ascii-divider">========== PROJECT MODE ==========</div>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           {modes.map(m => (
-            <div 
+            <div
               key={m.id}
               onClick={() => setMode(m.id)}
               className={`border border-solid p-4 cursor-pointer transition-none ${
-                mode === m.id 
-                  ? 'border-blueprint-blue bg-blueprint-blue-dim' 
-                  : 'border-border-subtle hover:border-ink'
+                mode === m.id ? 'border-blueprint-blue bg-blueprint-blue-dim' : 'border-border-subtle hover:border-ink'
               }`}
             >
               <div className="font-mono text-sm uppercase font-bold mb-2 flex justify-between">
@@ -272,7 +233,7 @@ export default function ProjectSetup() {
       </section>
 
       <section className="faq-box bg-paper relative">
-         <div className="absolute top-0 right-0 bg-ink text-paper font-mono text-caption px-2 py-1 uppercase">
+        <div className="absolute top-0 right-0 bg-ink text-paper font-mono text-caption px-2 py-1 uppercase">
           FIG_02: REQUIREMENT
         </div>
 
@@ -304,24 +265,22 @@ export default function ProjectSetup() {
 
       {analyzing && (
         <div className="fixed inset-0 bg-[rgba(0,0,0,0.8)] z-50 flex items-center justify-center p-4">
-          <div className="bg-paper border-2 border-solid border-blueprint-blue p-8 w-full max-w-2xl text-ink font-mono shadow-2xl relative overflow-hidden">
-             
-             <div className="absolute inset-0 bg-blueprint-grid opacity-20" />
-             <div className="absolute top-0 left-0 w-full h-1 bg-blueprint-blue animate-pulse" />
-             <h3 className="text-xl font-bold mb-6 flex items-center gap-4">
-               <span className="animate-spin border-t-2 border-l-2 border-ink w-4 h-4" />
-               AI Requirement Analysis
-             </h3>
-             
-             <div className="space-y-2 h-64 overflow-y-auto border border-dotted border-ink p-4 text-sm relative z-10">
-               {analysisLogs.map((log, i) => (
-                 <div key={i} className={i === analysisLogs.length - 1 ? "animate-pulse" : ""}>
-                   <span className="text-blueprint-blue mr-2">[{new Date().toISOString().split('T')[1].substring(0, 8)}]</span>
-                   {log}
-                 </div>
-               ))}
-             </div>
-             
+          <div className="bg-paper border-2 border-solid border-blueprint-blue p-8 w-full max-w-2xl text-ink font-mono relative overflow-hidden">
+            <div className="absolute inset-0 bg-blueprint-grid opacity-20" />
+            <div className="absolute top-0 left-0 w-full h-1 bg-blueprint-blue animate-pulse" />
+            <h3 className="text-xl font-bold mb-6 flex items-center gap-4">
+              <span className="animate-spin border-t-2 border-l-2 border-ink w-4 h-4" />
+              Requirement Analysis
+            </h3>
+
+            <div className="space-y-2 h-64 overflow-y-auto border border-dotted border-ink p-4 text-sm relative z-10">
+              {analysisLogs.map((log, i) => (
+                <div key={i} className={i === analysisLogs.length - 1 ? 'animate-pulse' : ''}>
+                  <span className="text-blueprint-blue mr-2">[{new Date().toISOString().split('T')[1].substring(0, 8)}]</span>
+                  {log}
+                </div>
+              ))}
+            </div>
           </div>
         </div>
       )}

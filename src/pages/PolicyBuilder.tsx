@@ -1,7 +1,7 @@
 import { Link, useNavigate } from 'react-router-dom';
-import { useStore, knownSkills } from '../store';
-import { SkillActivation } from '../types';
 import ScrambleText from '../components/ScrambleText';
+import { knownSkills, useStore } from '../store';
+import { SkillActivation } from '../types';
 
 export default function PolicyBuilder() {
   const profile = useStore(state => state.profile);
@@ -27,15 +27,15 @@ export default function PolicyBuilder() {
     if (newActivation === 'enabled' && details.risk === 'high') {
       const isConfirmed = window.confirm(
         `WARNING: High Risk Skill [${details.name}]\n\n` +
-        `This skill may execute deployments, scans, or high-impact operations. ` +
-        `Are you absolutely sure you want to ENABLE this by default for the project?`
+        'This skill may execute deployments, scans, or high-impact operations. ' +
+        'Are you absolutely sure you want to enable this by default for the project?'
       );
       if (!isConfirmed) return;
     }
-    
-    updateSkillState(skillId, { 
-      activation: newActivation, 
-      reason: 'User override' 
+
+    updateSkillState(skillId, {
+      activation: newActivation,
+      reason: 'User override'
     });
   };
 
@@ -52,8 +52,8 @@ export default function PolicyBuilder() {
             <div className="font-mono text-sm font-bold">{details.name}</div>
             <div className="font-mono text-caption uppercase text-muted mt-1">{details.category} | Risk: {details.risk}</div>
           </div>
-          
-          <select 
+
+          <select
             value={currentActivation}
             onChange={(e) => handleActivationChange(skill.skillId, e.target.value as SkillActivation, details)}
             className="border border-solid border-ink font-mono text-caption uppercase p-1 outline-none bg-paper cursor-pointer"
@@ -63,13 +63,13 @@ export default function PolicyBuilder() {
             <option value="disabled">Disabled</option>
           </select>
         </div>
-        
+
         {isHighRiskEnabled && (
           <div className="text-red-700 font-serif text-sm bg-red-100 border border-red-200 p-2 my-2">
-            <strong>Warning:</strong> 这个 Skill 可能执行部署、扫描或高影响操作。建议设置为 manual_only，除非你确定当前项目需要默认启用。
+            <strong>Warning:</strong> 这个 Skill 可能执行部署、扫描或高影响操作。建议设为 manual_only，除非你确定当前项目需要默认启用。
           </div>
         )}
-        
+
         <div className="font-serif text-sm mt-3 border-l-2 border-blueprint-blue pl-3 text-muted">
           <strong className="font-mono uppercase text-caption text-ink block mb-1 flex gap-2 items-center">Reason / Note <span className="blinking-cursor w-2 h-4 overflow-hidden" /></strong>
           {skill.reason}
@@ -82,7 +82,7 @@ export default function PolicyBuilder() {
     <div className="space-y-12 pb-12 reveal-text pt-4">
       <header className="border-b-2 border-solid border-ink pb-4">
         <h2 className="text-display min-h-[1.2em] border-l-8 border-ink pl-4"><ScrambleText text="POLICY BUILDER" /></h2>
-        <div className="font-mono text-sm uppercase tracking-wide flex justify-between mt-4">
+        <div className="font-mono text-sm uppercase flex justify-between mt-4">
           <span>Target: {profile.targets.join(' + ')}</span>
           <span className="bg-ink text-paper px-2 py-0.5">Detected Type: {profile.detectedProjectType || 'Unknown'}</span>
         </div>
@@ -96,8 +96,8 @@ export default function PolicyBuilder() {
       </section>
 
       <section>
-        <div className="ascii-divider">░░░░░░░░░░ SKILL DISTRIBUTION ░░░░░░░░░░</div>
-        
+        <div className="ascii-divider">========== SKILL DISTRIBUTION ==========</div>
+
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <div className="border border-solid border-ink bg-paper flex flex-col">
             <div className="bg-ink text-paper p-3 font-mono text-sm uppercase flex justify-between">
@@ -139,18 +139,18 @@ export default function PolicyBuilder() {
 
       {profile.conflicts.length > 0 && (
         <section>
-          <div className="ascii-divider">░░░░░░░░░░ CONFLICT RULES ░░░░░░░░░░</div>
+          <div className="ascii-divider">========== CONFLICT RULES ==========</div>
           <div className="space-y-4">
             {profile.conflicts.map(conflict => (
               <div key={conflict.id} className="border border-solid border-ink bg-paper p-6 relative">
                 <div className="absolute top-0 right-0 bg-ink text-paper font-mono text-caption px-2 py-1 uppercase">
                   RULE: {conflict.resolution.replace('_', ' ')}
                 </div>
-                
+
                 <h4 className="font-mono text-base font-bold mb-4">
                   {conflict.skills.join('  +  ')}
                 </h4>
-                
+
                 {conflict.resolution === 'split_responsibility' && conflict.responsibilities && (
                   <div className="space-y-3 font-serif">
                     <div className="font-mono text-sm uppercase mb-2">Responsibilities:</div>
@@ -161,7 +161,7 @@ export default function PolicyBuilder() {
                     ))}
                   </div>
                 )}
-                
+
                 <div className="mt-4 pt-4 border-t border-dotted border-border-subtle font-serif text-muted text-sm">
                   Reason: {conflict.reason}
                 </div>
@@ -172,15 +172,15 @@ export default function PolicyBuilder() {
       )}
 
       <section>
-        <div className="ascii-divider">░░░░░░░░░░ SMALL CHANGE RULE ░░░░░░░░░░</div>
+        <div className="ascii-divider">========== SMALL CHANGE RULE ==========</div>
         <div className="faq-box bg-paper">
           <div className="font-mono text-sm uppercase font-bold mb-4">Small Change Rule</div>
-          <p className="font-serif text-base mb-2">对于小型代码编辑、Bug 修复、文案调整、简单样式微调：</p>
+          <p className="font-serif text-base mb-2">对于小型代码编辑、Bug 修复、文案调整和简单样式微调：</p>
           <ul className="list-none space-y-2 font-serif text-base pl-0 m-0">
-            <li className="flex items-start gap-2"><span className="text-blueprint-blue select-none">[*]</span> 保持改动范围小</li>
-            <li className="flex items-start gap-2"><span className="text-blueprint-blue select-none">[*]</span> 不自动触发设计重构类 Skill</li>
-            <li className="flex items-start gap-2"><span className="text-blueprint-blue select-none">[*]</span> 不自动触发图片生成、部署、文档、表格、演示文稿等无关 Skill</li>
-            <li className="flex items-start gap-2"><span className="text-blueprint-blue select-none">[*]</span> 只在用户明确要求时扩大任务范围</li>
+            <li className="flex items-start gap-2"><span className="text-blueprint-blue select-none">[*]</span> 保持改动范围小。</li>
+            <li className="flex items-start gap-2"><span className="text-blueprint-blue select-none">[*]</span> 不自动触发设计重构类 Skill。</li>
+            <li className="flex items-start gap-2"><span className="text-blueprint-blue select-none">[*]</span> 不自动触发图片生成、部署、文档、表格、演示文稿等无关 Skill。</li>
+            <li className="flex items-start gap-2"><span className="text-blueprint-blue select-none">[*]</span> 只在用户明确要求时扩大任务范围。</li>
           </ul>
         </div>
       </section>
@@ -194,8 +194,8 @@ export default function PolicyBuilder() {
             <span className="border border-solid border-ink px-2 py-0.5 uppercase">Needs Review</span>
           )}
         </div>
-        
-        <button 
+
+        <button
           className="btn-terminal primary text-base px-8 py-4"
           onClick={() => navigate('/preview')}
         >
