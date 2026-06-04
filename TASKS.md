@@ -13,8 +13,8 @@
 
 ## 当前进度
 
-- 当前章节：3. Core 业务逻辑层
-- 当前子任务：3.1 新增 Skill Registry 数据模块并替换 `store.ts` 内硬编码 knownSkills。
+- 当前章节：4. 本地后端 API
+- 当前子任务：4.1 新增 Express API 服务骨架和 health endpoint。
 
 ## 任务清单
 
@@ -26,12 +26,12 @@
   - [x] 2.2 修复当前 TypeScript/JSX 字符串、乱码和编译错误。
   - [x] 2.3 跑通 `npm.cmd run lint` 和 `npm.cmd run build`。
 
-- [ ] 3. Core 业务逻辑层
-  - [ ] 3.1 新增 Skill Registry 数据模块并替换 `store.ts` 内硬编码 knownSkills。
-  - [ ] 3.2 新增需求分类模块。
-  - [ ] 3.3 新增 Skill 推荐模块。
-  - [ ] 3.4 新增冲突检测模块。
-  - [ ] 3.5 新增 Policy 生成模块，并让 OutputPreview 使用统一生成器。
+- [x] 3. Core 业务逻辑层
+  - [x] 3.1 新增 Skill Registry 数据模块并替换 `store.ts` 内硬编码 knownSkills。
+  - [x] 3.2 新增需求分类模块。
+  - [x] 3.3 新增 Skill 推荐模块。
+  - [x] 3.4 新增冲突检测模块。
+  - [x] 3.5 新增 Policy 生成模块，并让 OutputPreview 使用统一生成器。
 
 - [ ] 4. 本地后端 API
   - [ ] 4.1 新增 Express API 服务骨架和 health endpoint。
@@ -64,3 +64,10 @@
 - `src/pages/Dashboard.tsx`：修复首页空状态、分区标题和软策略说明的可见乱码。
 - `src/pages/Settings.tsx`：修复设置页危险区域标题乱码并保留现有设置结构。
 - `.gitignore`：忽略 npm 本地缓存目录 `.npm-cache/`。
+- `src/core/knownSkills.ts`：集中维护 V1 内置 Skill Registry 数据，供前端状态层和后续后端复用。
+- `src/types.ts`：补充需求分类、生成文件包和扫描结果等共享类型。
+- `src/core/classifyRequirement.ts`：提供 V1 规则式需求分类能力。
+- `src/core/resolveSkills.ts`：根据需求分类和用户覆盖项生成 Skill 启用状态。
+- `src/core/detectConflicts.ts`：集中维护 Skill 冲突规则和高风险启用提醒。
+- `src/core/generatePolicy.ts`：统一生成 AGENTS.md、CLAUDE.md、SkillGate policy、profile JSON 和 session prompt。
+- `src/pages/OutputPreview.tsx`：改为使用统一 Policy 生成器展示、复制和下载输出。

@@ -53,3 +53,33 @@ export type GlobalSettings = {
   isCRT?: boolean;
   hasBooted?: boolean;
 };
+
+export type RequirementClassification = {
+  projectType: string;
+  matchedCategories: string[];
+  confidence: number;
+  reasons: string[];
+};
+
+export type GeneratedPolicyFile = {
+  path: string;
+  content: string;
+  exists?: boolean;
+  willOverwrite?: boolean;
+};
+
+export type GeneratedPolicyBundle = {
+  agentsMd?: string;
+  claudeMd?: string;
+  skillPolicyMd: string;
+  profileJson: string;
+  sessionPrompt: string;
+  files: GeneratedPolicyFile[];
+};
+
+export type ScanResult = {
+  skills: SkillEntry[];
+  warnings: string[];
+  scannedRoots: string[];
+  scannedAt: string;
+};
