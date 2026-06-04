@@ -11,6 +11,11 @@ type ScanSkillsOptions = {
   includeBuiltIn?: boolean;
 };
 
+type ScanMessageBuckets = {
+  warnings: string[];
+  notices: string[];
+};
+
 function normalizeRoot(root: string, projectPath?: string) {
   const trimmed = root.trim();
   if (!trimmed) return '';
@@ -78,14 +83,21 @@ function parseSkillMarkdown(filePath: string, content: string): SkillEntry {
   };
 }
 
-async function findSkillFiles(root: string, warnings: string[], depth = 0): Promise<string[]> {
+async function findSkillFiles(root: string, messages: ScanMessageBuckets, depth = 0): Promise<string[]> {
   if (depth > 4) return [];
 
   let entries: Dirent[];
   try {
     entries = await fs.readdir(root, { withFileTypes: true });
   } catch (error) {
-    warnings.push(`Cannot read skill root: ${root} (${error instanceof Error ? error.message : 'unknown error'})`);
+    const code = typeof error === 'object' && error && 'code' in error ? String(error.code) : '';
+    const reason = error instanceof Error ? error.message : 'unknown error';
+    const message = `Skill root not available: ${root} (${reason})`;
+    if (code === 'ENOENT') {
+      messages.notices.push(message);
+    } else {
+      messages.warnings.push(`Cannot read skill root: ${root} (${reason})`);
+    }
     return [];
   }
 
@@ -94,8 +106,8 @@ async function findSkillFiles(root: string, warnings: string[], depth = 0): Prom
 
   const nested = await Promise.all(
     entries
-      .filter(entry => entry.isDirectory() && !entry.name.startsWith('.') && entry.name !== 'node_modules')
-      .map(entry => findSkillFiles(path.join(root, entry.name), warnings, depth + 1))
+      .filter(entry => entry.isDirectory() && (entry.name === '.system' || !entry.name.startsWith('.')) && entry.name !== 'node_modules')
+      .map(entry => findSkillFiles(path.join(root, entry.name), messages, depth + 1))
   );
 
   return nested.flat();
@@ -103,14 +115,19 @@ async function findSkillFiles(root: string, warnings: string[], depth = 0): Prom
 
 export async function scanSkills(options: ScanSkillsOptions): Promise<ScanResult> {
   const warnings: string[] = [];
+  const notices: string[] = [];
   const scannedRoots = Array.from(new Set(options.roots.map(root => normalizeRoot(root, options.projectPath)).filter(Boolean)));
-  const skillFiles = (await Promise.all(scannedRoots.map(root => findSkillFiles(root, warnings)))).flat();
+  const skillFiles = (await Promise.all(scannedRoots.map(root => findSkillFiles(root, { warnings, notices })))).flat();
   const scannedSkills: SkillEntry[] = [];
 
   for (const filePath of skillFiles) {
     try {
       const content = await fs.readFile(filePath, 'utf8');
-      scannedSkills.push(parseSkillMarkdown(filePath, content));
+      scannedSkills.push({
+        ...parseSkillMarkdown(filePath, content),
+        sourceType: 'local',
+        sourceVerified: true
+      });
     } catch (error) {
       warnings.push(`Cannot parse ${filePath}: ${error instanceof Error ? error.message : 'unknown error'}`);
     }
@@ -118,13 +135,26 @@ export async function scanSkills(options: ScanSkillsOptions): Promise<ScanResult
 
   const merged = new Map<string, SkillEntry>();
   if (options.includeBuiltIn !== false) {
-    knownSkills.forEach(skill => merged.set(skill.id, skill));
+    knownSkills.forEach(skill => merged.set(skill.id, {
+      ...skill,
+      sourceType: 'builtin',
+      sourceVerified: false
+    }));
   }
-  scannedSkills.forEach(skill => merged.set(skill.id, skill));
+  scannedSkills.forEach(skill => {
+    const existing = merged.get(skill.id);
+    merged.set(skill.id, {
+      ...existing,
+      ...skill,
+      sourceType: existing ? 'merged' : 'local',
+      sourceVerified: true
+    });
+  });
 
   return {
     skills: Array.from(merged.values()),
     warnings,
+    notices,
     scannedRoots,
     scannedAt: new Date().toISOString()
   };

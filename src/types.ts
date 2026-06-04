@@ -7,6 +7,8 @@ export type SkillEntry = {
   category: string;
   description: string;
   sourcePath?: string;
+  sourceType?: "builtin" | "local" | "merged";
+  sourceVerified?: boolean;
   defaultActivation: "auto_candidate" | "manual_candidate" | "disabled_candidate";
   risk: "low" | "medium" | "high";
   tags?: string[];
@@ -80,6 +82,7 @@ export type GeneratedPolicyBundle = {
 export type ScanResult = {
   skills: SkillEntry[];
   warnings: string[];
+  notices?: string[];
   scannedRoots: string[];
   scannedAt: string;
 };

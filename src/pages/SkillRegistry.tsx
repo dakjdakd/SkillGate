@@ -24,6 +24,7 @@ export default function SkillRegistry() {
   const [showPicker, setShowPicker] = useState(false);
   const [scanError, setScanError] = useState('');
   const [scanWarnings, setScanWarnings] = useState<string[]>([]);
+  const [scanNotices, setScanNotices] = useState<string[]>([]);
 
   const registrySkills = skillRegistry?.skills || knownSkills;
 
@@ -33,6 +34,7 @@ export default function SkillRegistry() {
     setScanProgress(0);
     setScanError('');
     setScanWarnings([]);
+    setScanNotices([]);
 
     const progress = window.setInterval(() => {
       setScanProgress(current => Math.min(current + 18, 88));
@@ -50,6 +52,7 @@ export default function SkillRegistry() {
       });
       setSkillRegistry(result);
       setScanWarnings(result.warnings);
+      setScanNotices(result.notices || []);
       setScanProgress(100);
       if (selectedSkill && !result.skills.some(skill => skill.id === selectedSkill.id)) {
         setSelectedSkill(null);
@@ -118,6 +121,14 @@ export default function SkillRegistry() {
         <div>
           <h3 className="font-pixel text-title break-all leading-tight mb-2 mt-4">{skill.name}</h3>
           <div className="font-mono text-caption text-muted mt-1">&gt; ID: {skill.id}</div>
+          <div className="font-mono text-caption uppercase mt-2 flex flex-wrap gap-2">
+            <span className={`border px-2 py-0.5 ${skill.sourceVerified ? 'border-blueprint-blue text-blueprint-blue bg-white' : 'border-border-subtle text-muted bg-paper'}`}>
+              {skill.sourceType === 'merged' ? 'MERGED' : skill.sourceType === 'local' ? 'LOCAL' : 'BUILTIN'}
+            </span>
+            <span className="border border-dotted border-ink px-2 py-0.5 text-muted">
+              {skill.sourceVerified ? 'SKILL.md VERIFIED' : 'REGISTRY FALLBACK'}
+            </span>
+          </div>
         </div>
 
         <div className="space-y-2">
@@ -199,6 +210,7 @@ export default function SkillRegistry() {
               .then(result => {
                 setSkillRegistry(result);
                 setScanWarnings(result.warnings);
+                setScanNotices(result.notices || []);
               })
               .catch(error => {
                 setScanError(error instanceof Error ? error.message : 'Custom skill scan failed.');
@@ -215,6 +227,17 @@ export default function SkillRegistry() {
           ))}
           {scanWarnings.length > 4 && (
             <div className="text-muted">WARN: {scanWarnings.length - 4} more warnings hidden</div>
+          )}
+        </section>
+      )}
+
+      {!scanError && scanNotices.length > 0 && (
+        <section className="shrink-0 border border-dotted border-border-subtle bg-paper p-4 font-mono text-sm text-muted">
+          {scanNotices.slice(0, 3).map(notice => (
+            <div key={notice}>INFO: {notice}</div>
+          ))}
+          {scanNotices.length > 3 && (
+            <div>INFO: {scanNotices.length - 3} more unavailable optional roots hidden</div>
           )}
         </section>
       )}
@@ -280,6 +303,9 @@ export default function SkillRegistry() {
                     <td className="py-1 px-4 sm:py-3 font-mono text-sm font-bold flex flex-wrap gap-2 items-center">
                       <span className="sm:hidden font-mono text-xs font-normal text-muted w-16">ID:</span>
                       {skill.name}
+                      <span className={`font-mono text-[10px] leading-none px-1.5 py-1 border uppercase ${skill.sourceVerified ? 'border-blueprint-blue text-blueprint-blue bg-white' : 'border-border-subtle text-muted bg-paper'}`}>
+                        {skill.sourceType === 'merged' ? 'MERGED' : skill.sourceType === 'local' ? 'LOCAL' : 'BUILTIN'}
+                      </span>
                     </td>
                     <td className="py-1 px-4 sm:py-3 font-mono text-caption uppercase w-[160px]">
                        <span className="sm:hidden font-mono text-xs font-normal text-muted w-16 inline-block">CAT:</span>

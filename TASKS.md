@@ -101,3 +101,22 @@
 - `server/services/skillScanner.ts`：扫描本机 `SKILL.md` 并合并内置 Skill Registry。
 - `server/services/profileRecommender.ts`：根据需求文本生成项目 Profile 推荐结果。
 - `server/services/policyFiles.ts`：生成策略文件预览并按确认路径写入项目目录。
+
+## 2026-06-04 追加任务：Skill 扫描来源透明化
+
+- [x] 7. Skill 扫描来源透明化
+  - [x] 7.1 为扫描结果补充 `LOCAL` / `BUILTIN` / `MERGED` 来源标识，并在 Skill Registry 列表与详情中展示。
+  - [x] 7.2 将不存在的可选 Skill 根目录提示从 WARN 调整为 INFO，避免误判为扫描失败。
+  - [x] 7.3 扫描 `.system` 子目录中的本机系统 Skill，减少真实本地 Skill 被内置兜底覆盖的情况。
+
+### 追加验证记录
+
+- `npm.cmd run lint`：通过。
+- `npm.cmd run build`：通过。
+
+### 追加相关文件
+
+- `server/services/skillScanner.ts`：补充来源标记、`.system` 扫描支持，并把不存在的可选目录归入 notices。
+- `src/types.ts`：补充 Skill 来源类型、来源验证状态和扫描 INFO 提示字段。
+- `src/pages/SkillRegistry.tsx`：展示 Skill 来源徽标与详情中的本地 `SKILL.md` 验证状态，并区分 WARN 与 INFO。
+- `TASKS.md`：追加记录本次来源透明化任务、验证项与相关文件。
