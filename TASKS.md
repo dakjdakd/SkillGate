@@ -231,15 +231,13 @@
   - [x] 12.1 将 README 改写为适合作为 GitHub 仓库首页的完整项目介绍。
   - [x] 12.2 在 README 顶部展示本地 `logo.png`，替换默认模板 banner。
   - [x] 12.3 README 使用项目作者视角与项目陈述，不出现对话式助手文案。
-  - [ ] 12.4 完成验证、提交并推送到 GitHub `main` 分支。
+  - [x] 12.4 完成验证、提交并推送到 GitHub `main` 分支。
 
 ## 追加验证记录
 
 - `npm.cmd run lint`：通过。
 - `npm.cmd run build`：通过。
 - `node --check scripts\dev.mjs`：通过。
-- 本地提交：通过，commit `00ef7c6 完善本地扫描与文档`。
-- 远端推送：未完成，`git push origin main` 两次超时；远端 `main` 仍为 `04cec255c2f9c5aa8df87e4d74c9f8a2afa7ee54`，本地 `main` 领先 1 个提交。
 
 ## 追加相关文件
 
@@ -249,10 +247,10 @@
 
 # 2026-06-04 追加任务：README Logo 显示区域优化
 
-- [ ] 13. README Logo 显示区域优化
+- [x] 13. README Logo 显示区域优化
   - [x] 13.1 生成 README 专用紧凑版 logo，避免原始 2048x2048 大画布撑高页面。
   - [x] 13.2 将 README 顶部图片切换为紧凑版，并调整到更适合 GitHub 首页的展示宽度。
-  - [ ] 13.3 提交并重新推送到 GitHub `main` 分支。
+  - [x] 13.3 提交并重新推送到 GitHub `main` 分支。
 
 ## 追加验证记录
 
