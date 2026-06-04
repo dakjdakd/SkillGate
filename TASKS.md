@@ -13,8 +13,8 @@
 
 ## 当前进度
 
-- 当前章节：6. 最终验证与收尾
-- 当前子任务：6.1 跑通 `npm.cmd run lint`。
+- 当前章节：完成
+- 当前子任务：无。
 
 ## 任务清单
 
@@ -47,12 +47,29 @@
   - [x] 5.4 Output Preview 接入 preview/apply 流程。
   - [x] 5.5 Dashboard 和 Settings 同步真实状态与文案。
 
-- [ ] 6. 最终验证与收尾
-  - [ ] 6.1 跑通 `npm.cmd run lint`。
-  - [ ] 6.2 跑通 `npm.cmd run build`。
-  - [ ] 6.3 启动本地服务并验证核心页面流程。
-  - [ ] 6.4 验证 Apply 写入预览确认机制。
-  - [ ] 6.5 更新最终相关文件列表和剩余风险。
+- [x] 6. 最终验证与收尾
+  - [x] 6.1 跑通 `npm.cmd run lint`。
+  - [x] 6.2 跑通 `npm.cmd run build`。
+  - [x] 6.3 启动本地服务并验证核心页面流程。
+  - [x] 6.4 验证 Apply 写入预览确认机制。
+  - [x] 6.5 更新最终相关文件列表和剩余风险。
+
+## 验证记录
+
+- `npm.cmd run lint`：通过。
+- `npm.cmd run build`：通过。
+- `GET http://localhost:8787/api/health`：通过，返回 `skillgate-api` 健康状态。
+- `POST /api/skills/scan`：通过，能合并内置 Skill 与本机 `SKILL.md` 扫描结果，并返回不可读目录 warning。
+- `POST /api/profile/recommend`：通过，电商前端需求被识别为 `frontend_ecommerce_app`，并生成 enabled/manual_only/disabled Skill 状态。
+- `POST /api/policy/preview`：通过，能返回 AGENTS.md、CLAUDE.md 与 `.skillgate` 目标文件预览和覆盖状态。
+- `POST /api/policy/apply`：通过，空 `confirmedPaths` 时 `writtenFiles` 为 0，所有目标文件进入 `skippedFiles`，且未创建 `AGENTS.md`、`CLAUDE.md` 或 `.skillgate`。
+- 前端服务：`npm.cmd run dev` 可正常启动；使用 `node .\node_modules\vite\bin\vite.js --port=3000 --host=127.0.0.1` 后，`GET http://127.0.0.1:3000` 返回 200。
+- 浏览器插件验证：本地地址被客户端策略拦截并返回 `net::ERR_BLOCKED_BY_CLIENT`，因此未能在插件内截图；已用 HTTP 服务探测和 API 流程验证替代。
+
+## 剩余风险
+
+- PowerShell 直接构造含中文路径的 JSON 请求时可能显示为 `??`，浏览器和前端 `fetch` 的 UTF-8 请求不受该终端编码现象影响。
+- V1 是 Soft Policy，只生成项目级约束文件和会话提示，不会在运行时硬禁用 Codex 或 Claude Code Skill。
 
 ## 相关文件
 
