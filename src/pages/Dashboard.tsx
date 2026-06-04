@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { scanSkillsApi } from '../api/client';
 import BlueprintIllustration from '../components/BlueprintIllustration';
 import ProgressBar from '../components/ProgressBar';
 import ScrambleText from '../components/ScrambleText';
@@ -11,28 +12,47 @@ export default function Dashboard() {
   const loadProfile = useStore(state => state.loadProfile);
   const deleteProfile = useStore(state => state.deleteProfile);
   const lastScanTime = useStore(state => state.lastScanTime);
-  const setLastScanTime = useStore(state => state.setLastScanTime);
+  const settings = useStore(state => state.settings);
+  const skillRegistry = useStore(state => state.skillRegistry);
+  const setSkillRegistry = useStore(state => state.setSkillRegistry);
   const navigate = useNavigate();
 
   const [isScanning, setIsScanning] = useState(false);
   const [scanProgress, setScanProgress] = useState(0);
+  const [scanError, setScanError] = useState('');
+  const [scanWarnings, setScanWarnings] = useState<string[]>([]);
 
-  const startScan = () => {
+  const startScan = async () => {
     if (isScanning) return;
     setIsScanning(true);
     setScanProgress(0);
+    setScanError('');
+    setScanWarnings([]);
 
-    let current = 0;
-    const interval = setInterval(() => {
-      current += Math.random() * 15;
-      if (current >= 100) {
-        current = 100;
-        clearInterval(interval);
-        setLastScanTime(new Date().toLocaleTimeString());
-        setTimeout(() => setIsScanning(false), 500);
-      }
-      setScanProgress(current);
+    const progress = window.setInterval(() => {
+      setScanProgress(current => Math.min(current + 14, 88));
     }, 200);
+
+    try {
+      const roots = settings.skillSources
+        .split(/\r?\n/)
+        .map(root => root.trim())
+        .filter(Boolean);
+      const result = await scanSkillsApi({
+        roots,
+        projectPath: profile?.projectPath,
+        includeBuiltIn: true
+      });
+      setSkillRegistry(result);
+      setScanWarnings(result.warnings);
+      setScanProgress(100);
+    } catch (error) {
+      setScanError(error instanceof Error ? error.message : 'Local skill scan failed.');
+      setScanProgress(100);
+    } finally {
+      window.clearInterval(progress);
+      setTimeout(() => setIsScanning(false), 500);
+    }
   };
 
   return (
@@ -187,6 +207,7 @@ export default function Dashboard() {
           >
             Scan Local Skills
           </button>
+          <Link to="/registry" className="btn-terminal border-b-2">View Registry</Link>
 
           {isScanning && (
             <div className="flex-1 ml-4 hidden sm:block">
@@ -196,6 +217,16 @@ export default function Dashboard() {
 
           <div className="w-full sm:hidden mt-4">
             {isScanning && <ProgressBar progress={scanProgress} label="SCAN" isSimulating={true} />}
+          </div>
+
+          <div className="w-full font-mono text-sm text-muted">
+            <span>Last Scan: {lastScanTime || 'N/A'}</span>
+            <span className="mx-2">|</span>
+            <span>Detected: {skillRegistry?.skills.length ?? 'N/A'}</span>
+            {scanError && <div className="text-red-600 mt-2">ERROR: {scanError}</div>}
+            {scanWarnings.slice(0, 2).map(warning => (
+              <div key={warning} className="mt-2">WARN: {warning}</div>
+            ))}
           </div>
         </div>
       </section>

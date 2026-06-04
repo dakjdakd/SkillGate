@@ -1,15 +1,18 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { recommendProfileApi } from '../api/client';
 import FileTreePicker from '../components/FileTreePicker';
 import ScrambleText from '../components/ScrambleText';
 import { useStore } from '../store';
 import { ProjectSkillProfile } from '../types';
 import { soundEngine } from '../utils/useSound';
 
+type TargetAgent = 'codex' | 'claude-code' | 'generic';
+
 export default function ProjectSetup() {
   const setProfile = useStore(state => state.setProfile);
-  const analyzeRequirement = useStore(state => state.analyzeRequirement);
   const existingProfile = useStore(state => state.profile);
+  const skillRegistry = useStore(state => state.skillRegistry);
   const navigate = useNavigate();
 
   const [path, setPath] = useState(existingProfile?.projectPath || '');
@@ -20,14 +23,15 @@ export default function ProjectSetup() {
   const [language, setLanguage] = useState(existingProfile?.language || '');
   const [mode, setMode] = useState(existingProfile?.defaultMode || 'Frontend Mode');
   const [requirement, setRequirement] = useState(existingProfile?.requirement || '');
-  const [targets, setTargets] = useState<Array<'codex' | 'claude-code' | 'generic'>>(existingProfile?.targets || ['codex', 'claude-code']);
+  const [targets, setTargets] = useState<TargetAgent[]>(existingProfile?.targets || ['codex', 'claude-code']);
   const [analyzing, setAnalyzing] = useState(false);
   const [analysisLogs, setAnalysisLogs] = useState<string[]>([]);
+  const [analysisError, setAnalysisError] = useState('');
   const [showPicker, setShowPicker] = useState(false);
 
-  const finishAnalysis = () => {
+  const buildProfileDraft = (): ProjectSkillProfile => {
     const profileId = existingProfile?.id || `prj-${Date.now().toString(36)}-${Math.random().toString(36).substring(2, 6)}`;
-    const profile: ProjectSkillProfile = {
+    return {
       id: profileId,
       version: '0.1.0',
       projectName: name || path.split(/[\/\\]/).pop() || 'Untitled',
@@ -39,25 +43,24 @@ export default function ProjectSetup() {
       defaultMode: mode,
       requirement,
       targets,
-      skills: [],
-      conflicts: [],
+      skills: existingProfile?.skills || [],
+      conflicts: existingProfile?.conflicts || [],
       createdAt: existingProfile?.createdAt || new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
-
-    setProfile(profile);
-    analyzeRequirement(requirement);
-    navigate('/policy');
   };
 
-  const handleAnalyze = () => {
-    if (!path) return alert('Please enter project path');
+  const handleAnalyze = async () => {
+    if (!path) {
+      setAnalysisError('Please enter a project path before analysis.');
+      return;
+    }
 
     setAnalyzing(true);
+    setAnalysisError('');
     setAnalysisLogs(['STARTING REQUIREMENT ANALYSIS...']);
     soundEngine.playClick();
 
-    let step = 0;
     const steps = [
       'PARSING REQUIREMENT TEXT...',
       'EXTRACTING INTENT AND METADATA...',
@@ -65,26 +68,46 @@ export default function ProjectSetup() {
       'MATCHING SKILLS TO INTENT...',
       'DETECTING POLICY CONFLICTS...',
       'SYNTHESIZING RESOLUTIONS...',
-      'DONE. BUILDING POLICY.'
+      'REQUESTING BACKEND RECOMMENDATION...',
     ];
 
-    const interval = setInterval(() => {
-      if (step < steps.length) {
-        setAnalysisLogs(prev => [...prev, steps[step]]);
-        soundEngine.playClick();
-        step++;
-      } else {
-        clearInterval(interval);
-        setTimeout(() => {
-          soundEngine.playSuccess();
-          finishAnalysis();
-        }, 500);
-      }
-    }, 400);
+    for (const step of steps) {
+      await new Promise(resolve => setTimeout(resolve, 220));
+      setAnalysisLogs(prev => [...prev, step]);
+      soundEngine.playClick();
+    }
+
+    try {
+      const profileDraft = buildProfileDraft();
+      const result = await recommendProfileApi({
+        profileDraft,
+        requirement,
+        skills: skillRegistry?.skills
+      });
+
+      setAnalysisLogs(prev => [
+        ...prev,
+        `DONE. PROJECT TYPE: ${result.classification.projectType.toUpperCase()}`,
+        `CONFIDENCE: ${Math.round(result.classification.confidence * 100)}%`,
+      ]);
+      setProfile({
+        ...result.profile,
+        defaultMode: mode || result.profile.defaultMode,
+        targets
+      });
+      soundEngine.playSuccess();
+      setTimeout(() => navigate('/policy'), 350);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Requirement recommendation failed.';
+      setAnalysisLogs(prev => [...prev, `ERROR: ${message}`]);
+      setAnalysisError(message);
+      soundEngine.playError();
+      setTimeout(() => setAnalyzing(false), 500);
+    }
   };
 
   const handleApplyDemoRequirement = () => {
-    setRequirement('我要做一个淘宝网页，要有商品列表、搜索、购物车和结算页面，界面要像真实电商应用。');
+    setRequirement('我要做一个淘宝风格的网页，需要商品列表、搜索、购物车和结算页面，界面要像真实电商应用。');
     setName('taobao-demo');
     setPath('D:\\Projects\\taobao-demo');
     setRepositoryType('Frontend App');
@@ -140,7 +163,15 @@ export default function ProjectSetup() {
               >
                 Browse
               </button>
-              <button className="btn-terminal whitespace-nowrap">Scan</button>
+              <button
+                className="btn-terminal whitespace-nowrap"
+                onClick={() => {
+                  setAnalysisError('Use Skill Registry to scan local skills for the selected project path.');
+                  soundEngine.playClick();
+                }}
+              >
+                Scan
+              </button>
             </div>
             {!path && (
               <p className="font-serif text-sm text-muted mt-2">
@@ -193,13 +224,13 @@ export default function ProjectSetup() {
                   ['generic', 'GENERIC AGENT']
                 ].map(([id, label]) => (
                   <label key={id} className="flex items-center gap-2 cursor-pointer">
-                    <span className="w-5">{targets.includes(id as 'codex' | 'claude-code' | 'generic') ? '[X]' : '[ ]'}</span>
+                    <span className="w-5">{targets.includes(id as TargetAgent) ? '[X]' : '[ ]'}</span>
                     <input
                       type="checkbox"
                       className="hidden"
-                      checked={targets.includes(id as 'codex' | 'claude-code' | 'generic')}
+                      checked={targets.includes(id as TargetAgent)}
                       onChange={e => e.target.checked
-                        ? setTargets([...targets, id as 'codex' | 'claude-code' | 'generic'])
+                        ? setTargets([...targets, id as TargetAgent])
                         : setTargets(targets.filter(t => t !== id))}
                     />
                     {label}
@@ -254,12 +285,17 @@ export default function ProjectSetup() {
               Clear
             </button>
           </div>
+          {analysisError && (
+            <p className="font-mono text-sm text-red-600 border border-dotted border-red-600 p-3">
+              {analysisError}
+            </p>
+          )}
         </div>
       </section>
 
       <div className="flex justify-end pt-8">
-        <button className="btn-terminal primary text-base px-8 py-4" onClick={handleAnalyze}>
-          ANALYZE & RECOMMEND &#x25B6;
+        <button className="btn-terminal primary text-base px-8 py-4" onClick={handleAnalyze} disabled={analyzing}>
+          {analyzing ? 'ANALYZING...' : 'ANALYZE & RECOMMEND'} &#x25B6;
         </button>
       </div>
 

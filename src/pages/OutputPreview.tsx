@@ -1,8 +1,10 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { applyPolicyApi, previewPolicyApi } from '../api/client';
 import ScrambleText from '../components/ScrambleText';
 import { generatePolicyBundle } from '../core/generatePolicy';
 import { useStore } from '../store';
+import { GeneratedPolicyFile } from '../types';
 import { exportPolicyZip } from '../utils/zipExporter';
 import { soundEngine } from '../utils/useSound';
 
@@ -14,6 +16,12 @@ export default function OutputPreview() {
   const outputPrefs = settings.outputPrefs;
   const [activeTab, setActiveTab] = useState<OutputTab>('prompt');
   const [copied, setCopied] = useState(false);
+  const [previewFiles, setPreviewFiles] = useState<GeneratedPolicyFile[]>([]);
+  const [previewWarnings, setPreviewWarnings] = useState<string[]>([]);
+  const [applyStatus, setApplyStatus] = useState('');
+  const [policyError, setPolicyError] = useState('');
+  const [isPreviewing, setIsPreviewing] = useState(false);
+  const [isApplying, setIsApplying] = useState(false);
 
   useEffect(() => {
     if (!outputPrefs.includes('prompt') && outputPrefs.length > 0) {
@@ -23,6 +31,30 @@ export default function OutputPreview() {
   }, [outputPrefs]);
 
   const generated = useMemo(() => profile ? generatePolicyBundle(profile) : null, [profile]);
+
+  useEffect(() => {
+    if (!profile) return;
+
+    const controller = new AbortController();
+    setIsPreviewing(true);
+    setPolicyError('');
+    previewPolicyApi(profile, { signal: controller.signal })
+      .then(result => {
+        setPreviewFiles(result.files);
+        setPreviewWarnings(result.warnings);
+      })
+      .catch(error => {
+        if (controller.signal.aborted) return;
+        setPreviewFiles([]);
+        setPreviewWarnings([]);
+        setPolicyError(error instanceof Error ? error.message : 'Policy preview failed.');
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) setIsPreviewing(false);
+      });
+
+    return () => controller.abort();
+  }, [profile]);
 
   if (!profile || !generated) {
     return (
@@ -79,6 +111,43 @@ export default function OutputPreview() {
     });
   };
 
+  const handleApplyToProject = async () => {
+    const files = previewFiles.length > 0 ? previewFiles : generated.files;
+    const summary = files
+      .map(file => `${file.exists || file.willOverwrite ? '[OVERWRITE]' : '[WRITE]'} ${file.path}`)
+      .join('\n');
+    const confirmation = window.confirm(
+      `Apply SkillGate policy files to this project?\n\n${summary}\n\nExisting files require confirmation and may be overwritten.`
+    );
+
+    if (!confirmation) {
+      setApplyStatus('Apply canceled. No files were written.');
+      return;
+    }
+
+    setIsApplying(true);
+    setPolicyError('');
+    setApplyStatus('');
+    try {
+      const confirmedPaths = files.map(file => file.path);
+      const result = await applyPolicyApi({ profile, confirmedPaths });
+      setApplyStatus(`Wrote ${result.writtenFiles.length} files. Skipped ${result.skippedFiles.length}.`);
+      setPreviewWarnings([...previewWarnings, ...result.warnings].filter(Boolean));
+      soundEngine.playSuccess();
+      await previewPolicyApi(profile).then(next => {
+        setPreviewFiles(next.files);
+        setPreviewWarnings(next.warnings);
+      });
+    } catch (error) {
+      setPolicyError(error instanceof Error ? error.message : 'Policy apply failed.');
+      soundEngine.playError();
+    } finally {
+      setIsApplying(false);
+    }
+  };
+
+  const filesForSummary = previewFiles.length > 0 ? previewFiles : generated.files;
+
   return (
     <div className="space-y-12 pt-4 reveal-text">
       <header className="border-b-2 border-solid border-ink pb-4">
@@ -95,13 +164,23 @@ export default function OutputPreview() {
         </div>
         <h3 className="font-mono text-sm uppercase font-bold mb-4">Generated Outputs:</h3>
         <ul className="list-none m-0 pl-0 font-mono text-sm space-y-2">
-          {generated.files.map(file => (
+          {filesForSummary.map(file => (
             <li key={file.path} className="flex items-center gap-2">
-              <span className="text-blueprint-blue">[*]</span>
-              {file.path}
+              <span className={file.exists || file.willOverwrite ? 'bg-ink text-paper px-1' : 'text-blueprint-blue'}>
+                {file.exists || file.willOverwrite ? '!' : '*'}
+              </span>
+              <span className="break-all">{file.path}</span>
             </li>
           ))}
         </ul>
+        <div className="mt-4 space-y-2 font-mono text-sm">
+          {isPreviewing && <div className="text-muted">Previewing project write targets...</div>}
+          {previewWarnings.slice(0, 3).map(warning => (
+            <div key={warning} className="text-muted">WARN: {warning}</div>
+          ))}
+          {policyError && <div className="text-red-600">ERROR: {policyError}</div>}
+          {applyStatus && <div className="text-blueprint-blue font-bold">{applyStatus}</div>}
+        </div>
       </section>
 
       <section>
@@ -175,6 +254,13 @@ export default function OutputPreview() {
               </button>
               <button className="btn-terminal primary flex-1 sm:flex-none border-b-2" onClick={handleDownloadAll}>
                 [ DOWNLOAD FULL ZIP ]
+              </button>
+              <button
+                className="btn-terminal primary flex-1 sm:flex-none border-b-2"
+                onClick={handleApplyToProject}
+                disabled={isApplying || isPreviewing}
+              >
+                {isApplying ? '[ APPLYING ]' : '[ APPLY TO PROJECT ]'}
               </button>
               <button className={`btn-terminal flex-1 sm:flex-none border-b-2 ${copied ? 'bg-ink text-paper' : ''}`} onClick={() => { soundEngine.playClick(); handleCopy(); }}>
                 {copied ? 'COPIED!' : 'COPY CONFIRMED'}

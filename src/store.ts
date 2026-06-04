@@ -4,7 +4,7 @@ import { classifyRequirement } from './core/classifyRequirement';
 import { detectConflicts } from './core/detectConflicts';
 import { knownSkills } from './core/knownSkills';
 import { resolveSkills } from './core/resolveSkills';
-import { GlobalSettings, ProjectSkillProfile, ProjectSkillState } from './types';
+import { GlobalSettings, ProjectSkillProfile, ProjectSkillState, ScanResult } from './types';
 
 export { knownSkills };
 
@@ -15,6 +15,7 @@ interface SkillGateState {
   recentProfiles: ProjectSkillProfile[];
   settings: GlobalSettings;
   lastScanTime: string | null;
+  skillRegistry: ScanResult | null;
   setProfile: (profile: ProjectSkillProfile) => void;
   deleteProfile: (id: string) => void;
   loadProfile: (id: string) => void;
@@ -23,6 +24,7 @@ interface SkillGateState {
   updateSettings: (settings: Partial<GlobalSettings>) => void;
   resetAll: () => void;
   setLastScanTime: (time: string) => void;
+  setSkillRegistry: (scanResult: ScanResult) => void;
 }
 
 const defaultSettings: GlobalSettings = {
@@ -40,6 +42,7 @@ export const useStore = create<SkillGateState>()(
       recentProfiles: [],
       settings: defaultSettings,
       lastScanTime: null,
+      skillRegistry: null,
 
       setProfile: (profile) => set((state) => {
         const existingIdx = state.recentProfiles.findIndex(p => p.id === profile.id);
@@ -110,10 +113,16 @@ export const useStore = create<SkillGateState>()(
         profile: null,
         recentProfiles: [],
         settings: defaultSettings,
-        lastScanTime: null
+        lastScanTime: null,
+        skillRegistry: null
       }),
 
-      setLastScanTime: (time) => set({ lastScanTime: time })
+      setLastScanTime: (time) => set({ lastScanTime: time }),
+
+      setSkillRegistry: (scanResult) => set({
+        skillRegistry: scanResult,
+        lastScanTime: new Date(scanResult.scannedAt).toLocaleTimeString()
+      })
     }),
     {
       name: LOCAL_STORAGE_KEY,

@@ -7,6 +7,8 @@ export default function Settings() {
   const settings = useStore(state => state.settings);
   const updateSettings = useStore(state => state.updateSettings);
   const resetAll = useStore(state => state.resetAll);
+  const lastScanTime = useStore(state => state.lastScanTime);
+  const skillRegistry = useStore(state => state.skillRegistry);
 
   const sources = settings.skillSources;
   const targets = settings.defaultTargets;
@@ -117,6 +119,18 @@ export default function Settings() {
             <span className="text-muted">Rule-based recommendation</span>
             <span className="text-blueprint-blue font-bold">[ ENABLED ]</span>
           </div>
+          <div className="flex justify-between border-b border-dotted border-border-subtle pb-2">
+            <span className="text-muted">Local backend API</span>
+            <span className="text-blueprint-blue font-bold">[ REQUIRED ]</span>
+          </div>
+          <div className="flex justify-between border-b border-dotted border-border-subtle pb-2">
+            <span className="text-muted">Last skill scan</span>
+            <span>{lastScanTime || 'N/A'}</span>
+          </div>
+          <div className="flex justify-between border-b border-dotted border-border-subtle pb-2">
+            <span className="text-muted">Detected skill registry</span>
+            <span>{skillRegistry ? `${skillRegistry.skills.length} skills` : 'Not scanned'}</span>
+          </div>
           <div className="flex justify-between pt-2 opacity-50">
             <span className="text-muted">LLM recommendation</span>
             <span>&lt; NOT AVAILABLE IN V1 &gt;</span>
@@ -132,7 +146,7 @@ export default function Settings() {
           </div>
           <div>
             <h4 className="font-mono text-sm font-bold text-red-700 uppercase">Reset Local State</h4>
-            <p className="font-serif text-sm text-red-600 mt-1 mb-4">Wipe all local mock projects and active policy state from Zustand local-storage.</p>
+            <p className="font-serif text-sm text-red-600 mt-1 mb-4">Wipe local project profiles, scan cache, and active policy state from Zustand local-storage.</p>
             <button
               className="btn-terminal border-red-600 text-red-600 hover:bg-red-600 hover:text-paper mt-3"
               onClick={(e) => {

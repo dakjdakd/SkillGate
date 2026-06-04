@@ -13,8 +13,8 @@
 
 ## 当前进度
 
-- 当前章节：4. 本地后端 API
-- 当前子任务：5.1 新增 API client，并保留后端不可用时的错误提示。
+- 当前章节：6. 最终验证与收尾
+- 当前子任务：6.1 跑通 `npm.cmd run lint`。
 
 ## 任务清单
 
@@ -40,12 +40,12 @@
   - [x] 4.4 实现 Policy 预览 API。
   - [x] 4.5 实现 Policy 确认写入 API。
 
-- [ ] 5. 前端接线与功能完善
-  - [ ] 5.1 新增 API client，并保留后端不可用时的错误提示。
-  - [ ] 5.2 Project Setup 接入真实推荐。
-  - [ ] 5.3 Skill Registry 接入真实扫描。
-  - [ ] 5.4 Output Preview 接入 preview/apply 流程。
-  - [ ] 5.5 Dashboard 和 Settings 同步真实状态与文案。
+- [x] 5. 前端接线与功能完善
+  - [x] 5.1 新增 API client，并保留后端不可用时的错误提示。
+  - [x] 5.2 Project Setup 接入真实推荐。
+  - [x] 5.3 Skill Registry 接入真实扫描。
+  - [x] 5.4 Output Preview 接入 preview/apply 流程。
+  - [x] 5.5 Dashboard 和 Settings 同步真实状态与文案。
 
 - [ ] 6. 最终验证与收尾
   - [ ] 6.1 跑通 `npm.cmd run lint`。
@@ -57,12 +57,13 @@
 ## 相关文件
 
 - `TASKS.md`：记录项目后端落地、前端接线、验证和分章提交推送的执行清单。
-- `src/store.ts`：维护当前前端状态、内置 Skill 数据、临时需求分类和推荐逻辑；第二章修复乱码业务文案。
+- `src/store.ts`：维护当前前端状态、内置 Skill 数据、需求分类推荐逻辑和后端扫描结果缓存。
 - `src/App.tsx`：修复侧边栏选中标记乱码并清理无用导入。
-- `src/pages/ProjectSetup.tsx`：修复项目配置页可见乱码、示例需求和模式说明。
+- `src/pages/ProjectSetup.tsx`：接入后端推荐 API，保留分析弹层并修复示例需求、模式说明等可见乱码。
+- `src/pages/SkillRegistry.tsx`：接入后端 Skill 扫描 API，展示扫描结果、扫描根目录数量、warning 和错误提示。
 - `src/pages/PolicyBuilder.tsx`：修复策略编辑页可见乱码、高风险提示、冲突说明和小改动规则。
-- `src/pages/Dashboard.tsx`：修复首页空状态、分区标题和软策略说明的可见乱码。
-- `src/pages/Settings.tsx`：修复设置页危险区域标题乱码并保留现有设置结构。
+- `src/pages/Dashboard.tsx`：接入后端 Skill 扫描 API，展示最近扫描、检测数量、warning 和错误状态，并修复空状态文案。
+- `src/pages/Settings.tsx`：同步展示本地后端 API、最近扫描、检测 Skill 数量和清理状态文案。
 - `.gitignore`：忽略 npm 本地缓存目录 `.npm-cache/`。
 - `.gitignore`：忽略本地 API 冒烟测试日志 `.skillgate-api*.log`。
 - `src/core/knownSkills.ts`：集中维护 V1 内置 Skill Registry 数据，供前端状态层和后续后端复用。
@@ -71,7 +72,10 @@
 - `src/core/resolveSkills.ts`：根据需求分类和用户覆盖项生成 Skill 启用状态。
 - `src/core/detectConflicts.ts`：集中维护 Skill 冲突规则和高风险启用提醒。
 - `src/core/generatePolicy.ts`：统一生成 AGENTS.md、CLAUDE.md、SkillGate policy、profile JSON 和 session prompt。
-- `src/pages/OutputPreview.tsx`：改为使用统一 Policy 生成器展示、复制和下载输出。
+- `src/pages/OutputPreview.tsx`：接入后端 Policy preview/apply 流程，展示目标路径、覆盖提醒、写入状态，并保留复制和下载输出。
+- `src/api/client.ts`：封装 scan、recommend、preview、apply API 请求，并在后端不可用时提供清晰错误。
+- `vite.config.ts`：新增开发环境 `/api` 代理到本地 SkillGate 后端，并清理乱码注释。
+- `src/vite-env.d.ts`：补充 Vite 客户端类型声明，支持读取 `import.meta.env`。
 - `server/index.ts`：Express 本地 API 入口，挂载 health、skills、profile 和 policy 路由。
 - `server/routes/skills.ts`：Skill 扫描 API 路由。
 - `server/routes/profile.ts`：Profile 推荐 API 路由。

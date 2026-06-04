@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { useStore, knownSkills } from '../store';
+import { scanSkillsApi } from '../api/client';
+import { knownSkills, useStore } from '../store';
 import { SkillEntry } from '../types';
 import ScrambleText from '../components/ScrambleText';
 import ProgressBar from '../components/ProgressBar';
@@ -7,7 +8,10 @@ import FileTreePicker from '../components/FileTreePicker';
 
 export default function SkillRegistry() {
   const lastScanTime = useStore(state => state.lastScanTime);
-  const setLastScanTime = useStore(state => state.setLastScanTime);
+  const profile = useStore(state => state.profile);
+  const settings = useStore(state => state.settings);
+  const skillRegistry = useStore(state => state.skillRegistry);
+  const setSkillRegistry = useStore(state => state.setSkillRegistry);
 
   const [selectedSkill, setSelectedSkill] = useState<SkillEntry | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
@@ -18,34 +22,56 @@ export default function SkillRegistry() {
   const [isScanning, setIsScanning] = useState(false);
   const [scanProgress, setScanProgress] = useState(0);
   const [showPicker, setShowPicker] = useState(false);
+  const [scanError, setScanError] = useState('');
+  const [scanWarnings, setScanWarnings] = useState<string[]>([]);
 
-  const startScan = () => {
+  const registrySkills = skillRegistry?.skills || knownSkills;
+
+  const startScan = async () => {
     if (isScanning) return;
     setIsScanning(true);
     setScanProgress(0);
-    
-    let current = 0;
-    const interval = setInterval(() => {
-      current += Math.random() * 20;
-      if (current >= 100) {
-        current = 100;
-        clearInterval(interval);
-        setLastScanTime(new Date().toLocaleTimeString());
-        setTimeout(() => setIsScanning(false), 500);
-      }
-      setScanProgress(current);
+    setScanError('');
+    setScanWarnings([]);
+
+    const progress = window.setInterval(() => {
+      setScanProgress(current => Math.min(current + 18, 88));
     }, 150);
+
+    try {
+      const roots = settings.skillSources
+        .split(/\r?\n/)
+        .map(root => root.trim())
+        .filter(Boolean);
+      const result = await scanSkillsApi({
+        roots,
+        projectPath: profile?.projectPath,
+        includeBuiltIn: true
+      });
+      setSkillRegistry(result);
+      setScanWarnings(result.warnings);
+      setScanProgress(100);
+      if (selectedSkill && !result.skills.some(skill => skill.id === selectedSkill.id)) {
+        setSelectedSkill(null);
+      }
+    } catch (error) {
+      setScanError(error instanceof Error ? error.message : 'Local skill scan failed.');
+      setScanProgress(100);
+    } finally {
+      window.clearInterval(progress);
+      setTimeout(() => setIsScanning(false), 500);
+    }
   };
 
-  const categories = Array.from(new Set(knownSkills.map(s => s.category)));
+  const categories = Array.from(new Set(registrySkills.map(s => s.category)));
   
   // Category stats
   const categoryStats = categories.reduce((acc, cat) => {
-    acc[cat] = knownSkills.filter(s => s.category === cat).length;
+    acc[cat] = registrySkills.filter(s => s.category === cat).length;
     return acc;
   }, {} as Record<string, number>);
 
-  const filteredSkills = knownSkills.filter(skill => {
+  const filteredSkills = registrySkills.filter(skill => {
     if (filterCategory !== 'all' && skill.category !== filterCategory) return false;
     if (filterPlatform !== 'all' && skill.platform !== filterPlatform) return false;
     if (filterRisk !== 'all' && skill.risk !== filterRisk) return false;
@@ -136,8 +162,13 @@ export default function SkillRegistry() {
         <div>
           <h2 className="text-display min-h-[1.2em] border-l-8 border-ink pl-4"><ScrambleText text="SKILL REGISTRY" /></h2>
           <div className="flex items-center gap-4 font-mono text-sm mt-4 flex-wrap">
-            <span className="bg-ink text-paper px-2 py-1 uppercase border border-solid border-ink">Detected: {knownSkills.length}</span>
+            <span className="bg-ink text-paper px-2 py-1 uppercase border border-solid border-ink">Detected: {registrySkills.length}</span>
             <span className="text-muted border border-dotted border-ink px-2 py-1 hidden sm:block">Last Scan: {lastScanTime || 'N/A'}</span>
+            {skillRegistry && (
+              <span className="text-muted border border-dotted border-ink px-2 py-1 hidden sm:block">
+                Roots: {skillRegistry.scannedRoots.length}
+              </span>
+            )}
           </div>
         </div>
         
@@ -160,9 +191,32 @@ export default function SkillRegistry() {
           onClose={() => setShowPicker(false)}
           onSelect={(path) => {
             setShowPicker(false);
-            alert(`Scanning ${path}...\n\nResult:\nError: Invalid SKILL.md found at path. Custom skill import aborted.`);
+            scanSkillsApi({
+              roots: [path],
+              projectPath: profile?.projectPath,
+              includeBuiltIn: true
+            })
+              .then(result => {
+                setSkillRegistry(result);
+                setScanWarnings(result.warnings);
+              })
+              .catch(error => {
+                setScanError(error instanceof Error ? error.message : 'Custom skill scan failed.');
+              });
           }}
         />
+      )}
+
+      {(scanError || scanWarnings.length > 0) && (
+        <section className="shrink-0 border border-dotted border-ink bg-paper p-4 font-mono text-sm">
+          {scanError && <div className="text-red-600">ERROR: {scanError}</div>}
+          {scanWarnings.slice(0, 4).map(warning => (
+            <div key={warning} className="text-muted">WARN: {warning}</div>
+          ))}
+          {scanWarnings.length > 4 && (
+            <div className="text-muted">WARN: {scanWarnings.length - 4} more warnings hidden</div>
+          )}
+        </section>
       )}
 
       {/* Category Stats */}
