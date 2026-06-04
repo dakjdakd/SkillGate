@@ -1,6 +1,5 @@
 import { classifyRequirement } from '../../src/core/classifyRequirement';
 import { detectConflicts } from '../../src/core/detectConflicts';
-import { knownSkills } from '../../src/core/knownSkills';
 import { resolveSkills } from '../../src/core/resolveSkills';
 import { ProjectSkillProfile, ProjectSkillState, RequirementClassification, SkillEntry } from '../../src/types';
 
@@ -24,7 +23,7 @@ function createProfileId() {
 export function recommendProfile(input: RecommendProfileInput): RecommendProfileResult {
   const now = new Date().toISOString();
   const profileDraft = input.profileDraft || {};
-  const registry = input.skills && input.skills.length > 0 ? input.skills : knownSkills;
+  const registry = input.skills || [];
   const requirement = input.requirement || profileDraft.requirement || '';
   const classification = classifyRequirement(requirement);
   const skillStates = resolveSkills({
@@ -56,6 +55,9 @@ export function recommendProfile(input: RecommendProfileInput): RecommendProfile
   return {
     profile,
     classification,
-    warnings: conflictResult.warnings
+    warnings: [
+      ...conflictResult.warnings,
+      ...(registry.length === 0 ? ['No local skills were provided. Scan local skills before generating a skill policy.'] : [])
+    ]
   };
 }

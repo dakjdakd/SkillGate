@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { scanSkillsApi } from '../api/client';
-import { knownSkills, useStore } from '../store';
+import { useStore } from '../store';
 import { SkillEntry } from '../types';
 import ScrambleText from '../components/ScrambleText';
 import ProgressBar from '../components/ProgressBar';
@@ -26,7 +26,7 @@ export default function SkillRegistry() {
   const [scanWarnings, setScanWarnings] = useState<string[]>([]);
   const [scanNotices, setScanNotices] = useState<string[]>([]);
 
-  const registrySkills = skillRegistry?.skills || knownSkills;
+  const registrySkills = skillRegistry?.skills || [];
 
   const startScan = async () => {
     if (isScanning) return;
@@ -47,8 +47,7 @@ export default function SkillRegistry() {
         .filter(Boolean);
       const result = await scanSkillsApi({
         roots,
-        projectPath: profile?.projectPath,
-        includeBuiltIn: true
+        projectPath: profile?.projectPath
       });
       setSkillRegistry(result);
       setScanWarnings(result.warnings);
@@ -122,11 +121,11 @@ export default function SkillRegistry() {
           <h3 className="font-pixel text-title break-all leading-tight mb-2 mt-4">{skill.name}</h3>
           <div className="font-mono text-caption text-muted mt-1">&gt; ID: {skill.id}</div>
           <div className="font-mono text-caption uppercase mt-2 flex flex-wrap gap-2">
-            <span className={`border px-2 py-0.5 ${skill.sourceVerified ? 'border-blueprint-blue text-blueprint-blue bg-white' : 'border-border-subtle text-muted bg-paper'}`}>
-              {skill.sourceType === 'merged' ? 'MERGED' : skill.sourceType === 'local' ? 'LOCAL' : 'BUILTIN'}
+            <span className="border border-blueprint-blue text-blueprint-blue bg-white px-2 py-0.5">
+              LOCAL
             </span>
             <span className="border border-dotted border-ink px-2 py-0.5 text-muted">
-              {skill.sourceVerified ? 'SKILL.md VERIFIED' : 'REGISTRY FALLBACK'}
+              SKILL.md VERIFIED
             </span>
           </div>
         </div>
@@ -163,6 +162,15 @@ export default function SkillRegistry() {
             </div>
           </div>
         )}
+
+        {skill.sourceFile && (
+          <div>
+            <div className="font-mono text-sm uppercase font-bold mb-2">&gt; SKILL.md File</div>
+            <div className="font-mono text-caption bg-paper border border-dotted border-ink p-2 break-all text-muted">
+              {skill.sourceFile}
+            </div>
+          </div>
+        )}
       </div>
     );
   };
@@ -174,10 +182,18 @@ export default function SkillRegistry() {
           <h2 className="text-display min-h-[1.2em] border-l-8 border-ink pl-4"><ScrambleText text="SKILL REGISTRY" /></h2>
           <div className="flex items-center gap-4 font-mono text-sm mt-4 flex-wrap">
             <span className="bg-ink text-paper px-2 py-1 uppercase border border-solid border-ink">Detected: {registrySkills.length}</span>
+            <span className="text-muted border border-dotted border-ink px-2 py-1 hidden sm:block">
+              Local SKILL.md: {registrySkills.length}
+            </span>
             <span className="text-muted border border-dotted border-ink px-2 py-1 hidden sm:block">Last Scan: {lastScanTime || 'N/A'}</span>
             {skillRegistry && (
               <span className="text-muted border border-dotted border-ink px-2 py-1 hidden sm:block">
                 Roots: {skillRegistry.scannedRoots.length}
+              </span>
+            )}
+            {skillRegistry?.scannerVersion && (
+              <span className="text-muted border border-dotted border-ink px-2 py-1 hidden sm:block">
+                Scanner: {skillRegistry.scannerVersion}
               </span>
             )}
           </div>
@@ -204,8 +220,7 @@ export default function SkillRegistry() {
             setShowPicker(false);
             scanSkillsApi({
               roots: [path],
-              projectPath: profile?.projectPath,
-              includeBuiltIn: true
+              projectPath: profile?.projectPath
             })
               .then(result => {
                 setSkillRegistry(result);
@@ -239,6 +254,23 @@ export default function SkillRegistry() {
           {scanNotices.length > 3 && (
             <div>INFO: {scanNotices.length - 3} more unavailable optional roots hidden</div>
           )}
+        </section>
+      )}
+
+      {skillRegistry?.rootReports && skillRegistry.rootReports.length > 0 && (
+        <section className="shrink-0 border border-solid border-ink bg-paper p-4 font-mono text-caption">
+          <div className="uppercase font-bold mb-3">&gt; Scan Roots</div>
+          <div className="grid gap-2 max-h-40 overflow-y-auto">
+            {skillRegistry.rootReports.map(report => (
+              <div key={report.root} className="grid grid-cols-[88px_72px_1fr] gap-2 border-b border-dotted border-border-subtle pb-1">
+                <span className={report.status === 'scanned' ? 'text-blueprint-blue font-bold uppercase' : 'text-muted uppercase'}>
+                  {report.status}
+                </span>
+                <span>[{report.skillFiles}]</span>
+                <span className="break-all text-muted">{report.root}</span>
+              </div>
+            ))}
+          </div>
         </section>
       )}
 
@@ -294,7 +326,7 @@ export default function SkillRegistry() {
               <tbody>
                 {filteredSkills.map(skill => (
                   <tr 
-                    key={skill.id}
+                    key={skill.sourceFile || skill.id}
                     onClick={() => setSelectedSkill(skill)}
                     className={`border-t border-dotted border-ink cursor-pointer transition-none flex flex-col sm:table-row py-2 sm:py-0 ${
                       selectedSkill?.id === skill.id ? 'bg-blueprint-blue-dim' : 'hover:bg-border-subtle/30'
@@ -303,8 +335,8 @@ export default function SkillRegistry() {
                     <td className="py-1 px-4 sm:py-3 font-mono text-sm font-bold flex flex-wrap gap-2 items-center">
                       <span className="sm:hidden font-mono text-xs font-normal text-muted w-16">ID:</span>
                       {skill.name}
-                      <span className={`font-mono text-[10px] leading-none px-1.5 py-1 border uppercase ${skill.sourceVerified ? 'border-blueprint-blue text-blueprint-blue bg-white' : 'border-border-subtle text-muted bg-paper'}`}>
-                        {skill.sourceType === 'merged' ? 'MERGED' : skill.sourceType === 'local' ? 'LOCAL' : 'BUILTIN'}
+                      <span className="font-mono text-[10px] leading-none px-1.5 py-1 border uppercase border-blueprint-blue text-blueprint-blue bg-white">
+                        LOCAL
                       </span>
                     </td>
                     <td className="py-1 px-4 sm:py-3 font-mono text-caption uppercase w-[160px]">

@@ -2,19 +2,58 @@ import fs from 'fs/promises';
 import type { Dirent } from 'fs';
 import path from 'path';
 import os from 'os';
-import { knownSkills } from '../../src/core/knownSkills';
-import { ScanResult, SkillEntry } from '../../src/types';
+import { ScanResult, ScanRootReport, SkillEntry } from '../../src/types';
 
 type ScanSkillsOptions = {
   roots: string[];
   projectPath?: string;
-  includeBuiltIn?: boolean;
 };
 
 type ScanMessageBuckets = {
   warnings: string[];
   notices: string[];
 };
+
+export const SCANNER_VERSION = 'local-skill-scan-v3';
+
+function unique(values: string[]) {
+  return Array.from(new Set(values.filter(Boolean)));
+}
+
+function unquoteYamlScalar(value: string) {
+  const trimmed = value.trim();
+  if (
+    (trimmed.startsWith('"') && trimmed.endsWith('"')) ||
+    (trimmed.startsWith("'") && trimmed.endsWith("'"))
+  ) {
+    return trimmed.slice(1, -1);
+  }
+
+  return trimmed;
+}
+
+function getDefaultSkillRoots(projectPath?: string) {
+  const home = os.homedir();
+  const projectRoot = projectPath || process.cwd();
+  const envRoots = [
+    process.env.CODEX_HOME && path.join(process.env.CODEX_HOME, 'skills'),
+    process.env.CODEX_HOME && path.join(process.env.CODEX_HOME, 'plugins', 'cache'),
+    process.env.CLAUDE_HOME && path.join(process.env.CLAUDE_HOME, 'skills'),
+    process.env.AGENTS_HOME && path.join(process.env.AGENTS_HOME, 'skills'),
+    process.env.XDG_CONFIG_HOME && path.join(process.env.XDG_CONFIG_HOME, 'codex', 'skills'),
+    process.env.APPDATA && path.join(process.env.APPDATA, 'Codex', 'skills')
+  ].filter((root): root is string => Boolean(root));
+
+  return unique([
+    path.join(home, '.codex', 'skills'),
+    path.join(home, '.agents', 'skills'),
+    path.join(home, '.claude', 'skills'),
+    path.join(home, '.codex', 'plugins', 'cache'),
+    path.join(projectRoot, '.codex', 'skills'),
+    path.join(projectRoot, '.agents', 'skills'),
+    ...envRoots
+  ]);
+}
 
 function normalizeRoot(root: string, projectPath?: string) {
   const trimmed = root.trim();
@@ -66,8 +105,10 @@ function parseSkillMarkdown(filePath: string, content: string): SkillEntry {
   const descriptionFromYaml = lines.find(line => line.startsWith('description:'))?.replace('description:', '').trim();
   const heading = lines.find(line => line.startsWith('# '))?.replace(/^#\s+/, '').trim();
   const folderName = path.basename(path.dirname(filePath));
-  const name = nameFromYaml || heading || folderName;
-  const description = descriptionFromYaml || lines.find(line => line.trim() && !line.startsWith('---'))?.trim() || 'Local skill detected from SKILL.md.';
+  const name = nameFromYaml ? unquoteYamlScalar(nameFromYaml) : heading || folderName;
+  const description = descriptionFromYaml
+    ? unquoteYamlScalar(descriptionFromYaml)
+    : lines.find(line => line.trim() && !line.startsWith('---'))?.trim() || 'Local skill detected from SKILL.md.';
   const category = inferCategory(`${name}\n${description}\n${normalized.slice(0, 1200)}`);
   const risk = inferRisk(`${name}\n${description}\n${normalized.slice(0, 1200)}`);
 
@@ -78,13 +119,14 @@ function parseSkillMarkdown(filePath: string, content: string): SkillEntry {
     category,
     description,
     sourcePath: path.dirname(filePath),
+    sourceFile: filePath,
     defaultActivation: inferActivation(risk),
     risk
   };
 }
 
 async function findSkillFiles(root: string, messages: ScanMessageBuckets, depth = 0): Promise<string[]> {
-  if (depth > 4) return [];
+  if (depth > 8) return [];
 
   let entries: Dirent[];
   try {
@@ -107,17 +149,50 @@ async function findSkillFiles(root: string, messages: ScanMessageBuckets, depth 
   const nested = await Promise.all(
     entries
       .filter(entry => entry.isDirectory() && (entry.name === '.system' || !entry.name.startsWith('.')) && entry.name !== 'node_modules')
+      .filter(entry => !entry.name.startsWith('plugin-backup-'))
       .map(entry => findSkillFiles(path.join(root, entry.name), messages, depth + 1))
   );
 
   return nested.flat();
 }
 
+async function scanRoot(root: string, messages: ScanMessageBuckets): Promise<{ files: string[]; report: ScanRootReport }> {
+  try {
+    await fs.access(root);
+  } catch (error) {
+    const code = typeof error === 'object' && error && 'code' in error ? String(error.code) : '';
+    const reason = error instanceof Error ? error.message : 'unknown error';
+    const message = `Skill root not available: ${root} (${reason})`;
+
+    if (code === 'ENOENT') {
+      messages.notices.push(message);
+      return { files: [], report: { root, status: 'missing', skillFiles: 0, message } };
+    }
+
+    const warning = `Cannot read skill root: ${root} (${reason})`;
+    messages.warnings.push(warning);
+    return { files: [], report: { root, status: 'unreadable', skillFiles: 0, message: warning } };
+  }
+
+  const files = await findSkillFiles(root, messages);
+  return {
+    files,
+    report: {
+      root,
+      status: 'scanned',
+      skillFiles: files.length,
+      message: files.length > 0 ? `Found ${files.length} SKILL.md file(s).` : 'No SKILL.md files found under this root.'
+    }
+  };
+}
+
 export async function scanSkills(options: ScanSkillsOptions): Promise<ScanResult> {
   const warnings: string[] = [];
   const notices: string[] = [];
-  const scannedRoots = Array.from(new Set(options.roots.map(root => normalizeRoot(root, options.projectPath)).filter(Boolean)));
-  const skillFiles = (await Promise.all(scannedRoots.map(root => findSkillFiles(root, { warnings, notices })))).flat();
+  const requestedRoots = options.roots.map(root => normalizeRoot(root, options.projectPath)).filter(Boolean);
+  const scannedRoots = unique([...requestedRoots, ...getDefaultSkillRoots(options.projectPath)]);
+  const rootScans = await Promise.all(scannedRoots.map(root => scanRoot(root, { warnings, notices })));
+  const skillFiles = rootScans.flatMap(scan => scan.files);
   const scannedSkills: SkillEntry[] = [];
 
   for (const filePath of skillFiles) {
@@ -133,29 +208,14 @@ export async function scanSkills(options: ScanSkillsOptions): Promise<ScanResult
     }
   }
 
-  const merged = new Map<string, SkillEntry>();
-  if (options.includeBuiltIn !== false) {
-    knownSkills.forEach(skill => merged.set(skill.id, {
-      ...skill,
-      sourceType: 'builtin',
-      sourceVerified: false
-    }));
-  }
-  scannedSkills.forEach(skill => {
-    const existing = merged.get(skill.id);
-    merged.set(skill.id, {
-      ...existing,
-      ...skill,
-      sourceType: existing ? 'merged' : 'local',
-      sourceVerified: true
-    });
-  });
-
   return {
-    skills: Array.from(merged.values()),
+    skills: scannedSkills,
     warnings,
     notices,
     scannedRoots,
-    scannedAt: new Date().toISOString()
+    rootReports: rootScans.map(scan => scan.report),
+    scannedAt: new Date().toISOString(),
+    scannerMode: 'local-only',
+    scannerVersion: SCANNER_VERSION
   };
 }

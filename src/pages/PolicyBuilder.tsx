@@ -1,10 +1,11 @@
 import { Link, useNavigate } from 'react-router-dom';
 import ScrambleText from '../components/ScrambleText';
-import { knownSkills, useStore } from '../store';
-import { SkillActivation } from '../types';
+import { useStore } from '../store';
+import { SkillActivation, SkillEntry, ProjectSkillState } from '../types';
 
 export default function PolicyBuilder() {
   const profile = useStore(state => state.profile);
+  const skillRegistry = useStore(state => state.skillRegistry);
   const updateSkillState = useStore(state => state.updateSkillState);
   const navigate = useNavigate();
 
@@ -20,10 +21,11 @@ export default function PolicyBuilder() {
   const enabledSkills = profile.skills.filter(s => s.activation === 'enabled');
   const manualSkills = profile.skills.filter(s => s.activation === 'manual_only');
   const disabledSkills = profile.skills.filter(s => s.activation === 'disabled');
+  const registrySkills = skillRegistry?.skills || [];
 
-  const getSkillDetails = (id: string) => knownSkills.find(k => k.id === id);
+  const getSkillDetails = (id: string) => registrySkills.find(k => k.id === id);
 
-  const handleActivationChange = (skillId: string, newActivation: SkillActivation, details: any) => {
+  const handleActivationChange = (skillId: string, newActivation: SkillActivation, details: SkillEntry) => {
     if (newActivation === 'enabled' && details.risk === 'high') {
       const isConfirmed = window.confirm(
         `WARNING: High Risk Skill [${details.name}]\n\n` +
@@ -39,7 +41,7 @@ export default function PolicyBuilder() {
     });
   };
 
-  const renderSkillRow = (skill: any, currentActivation: SkillActivation) => {
+  const renderSkillRow = (skill: ProjectSkillState, currentActivation: SkillActivation) => {
     const details = getSkillDetails(skill.skillId);
     if (!details) return null;
 
@@ -97,6 +99,11 @@ export default function PolicyBuilder() {
 
       <section>
         <div className="ascii-divider">========== SKILL DISTRIBUTION ==========</div>
+        {registrySkills.length === 0 && (
+          <div className="border border-dotted border-ink bg-paper p-4 font-mono text-sm text-muted uppercase mb-6">
+            No live local skill registry loaded. Run Scan Local Skills before editing policy rows.
+          </div>
+        )}
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <div className="border border-solid border-ink bg-paper flex flex-col">

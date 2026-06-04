@@ -21,6 +21,7 @@ export default function Dashboard() {
   const [scanProgress, setScanProgress] = useState(0);
   const [scanError, setScanError] = useState('');
   const [scanWarnings, setScanWarnings] = useState<string[]>([]);
+  const [scanNotices, setScanNotices] = useState<string[]>([]);
 
   const startScan = async () => {
     if (isScanning) return;
@@ -28,6 +29,7 @@ export default function Dashboard() {
     setScanProgress(0);
     setScanError('');
     setScanWarnings([]);
+    setScanNotices([]);
 
     const progress = window.setInterval(() => {
       setScanProgress(current => Math.min(current + 14, 88));
@@ -40,11 +42,11 @@ export default function Dashboard() {
         .filter(Boolean);
       const result = await scanSkillsApi({
         roots,
-        projectPath: profile?.projectPath,
-        includeBuiltIn: true
+        projectPath: profile?.projectPath
       });
       setSkillRegistry(result);
       setScanWarnings(result.warnings);
+      setScanNotices(result.notices || []);
       setScanProgress(100);
     } catch (error) {
       setScanError(error instanceof Error ? error.message : 'Local skill scan failed.');
@@ -226,6 +228,9 @@ export default function Dashboard() {
             {scanError && <div className="text-red-600 mt-2">ERROR: {scanError}</div>}
             {scanWarnings.slice(0, 2).map(warning => (
               <div key={warning} className="mt-2">WARN: {warning}</div>
+            ))}
+            {scanWarnings.length === 0 && scanNotices.slice(0, 2).map(notice => (
+              <div key={notice} className="mt-2">INFO: {notice}</div>
             ))}
           </div>
         </div>

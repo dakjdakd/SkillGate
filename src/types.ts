@@ -7,7 +7,8 @@ export type SkillEntry = {
   category: string;
   description: string;
   sourcePath?: string;
-  sourceType?: "builtin" | "local" | "merged";
+  sourceFile?: string;
+  sourceType?: "local";
   sourceVerified?: boolean;
   defaultActivation: "auto_candidate" | "manual_candidate" | "disabled_candidate";
   risk: "low" | "medium" | "high";
@@ -84,5 +85,15 @@ export type ScanResult = {
   warnings: string[];
   notices?: string[];
   scannedRoots: string[];
+  rootReports?: ScanRootReport[];
   scannedAt: string;
+  scannerMode?: string;
+  scannerVersion?: string;
+};
+
+export type ScanRootReport = {
+  root: string;
+  status: "scanned" | "missing" | "unreadable";
+  skillFiles: number;
+  message?: string;
 };
