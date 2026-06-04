@@ -246,3 +246,20 @@
 - `README.md`：重写 GitHub 仓库首页文档，包含项目定位、核心能力、真实本机 Skill 扫描、工作流程、API、架构、目录结构、常见问题和 Roadmap。
 - `logo.png`：作为 README 顶部品牌图展示。
 - `TASKS.md`：记录 README 完善与版本推送任务。
+
+# 2026-06-04 追加任务：README Logo 显示区域优化
+
+- [ ] 13. README Logo 显示区域优化
+  - [x] 13.1 生成 README 专用紧凑版 logo，避免原始 2048x2048 大画布撑高页面。
+  - [x] 13.2 将 README 顶部图片切换为紧凑版，并调整到更适合 GitHub 首页的展示宽度。
+  - [ ] 13.3 提交并重新推送到 GitHub `main` 分支。
+
+## 追加验证记录
+
+- 紧凑版 logo 生成：通过，`assets/readme-logo.png` 尺寸为 `1773x351`。
+
+## 追加相关文件
+
+- `assets/readme-logo.png`：README 专用紧凑 logo，裁掉原始图片的大面积留白。
+- `README.md`：顶部 logo 改为使用紧凑版图片，并把展示宽度调整为 `520`。
+- `TASKS.md`：记录 README Logo 显示区域优化任务。

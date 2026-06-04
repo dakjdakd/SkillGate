@@ -1,5 +1,5 @@
 <div align="center">
-  <img src="./logo.png" alt="SkillGate logo" width="720" />
+  <img src="./assets/readme-logo.png" alt="SkillGate logo" width="520" />
 
   <h1>SkillGate</h1>
 
