@@ -261,3 +261,21 @@
 - `assets/readme-logo.png`：README 专用紧凑 logo，裁掉原始图片的大面积留白。
 - `README.md`：顶部 logo 改为使用紧凑版图片，并把展示宽度调整为 `520`。
 - `TASKS.md`：记录 README Logo 显示区域优化任务。
+
+# 2026-06-08 追加任务：Dashboard 扫描结果展示优化
+
+- [x] 14. Dashboard 扫描结果展示优化
+  - [x] 14.1 将 `Scan Local Skills` 后的主显示改为扫描完成摘要，优先展示本地 Skill 数量、可用来源数量和跳过目录数量。
+  - [x] 14.2 将缺失的可选目录与原始诊断信息收纳到 `View Scan Details` 折叠区域，避免用户误判为扫描失败。
+  - [x] 14.3 在折叠详情中展示每个扫描根目录的路径、状态和命中 `SKILL.md` 数量。
+  - [x] 14.4 完成验证并更新任务清单。
+
+## 追加验证记录
+
+- `npm.cmd run lint`：通过。
+- `npm.cmd run build`：通过。
+
+## 追加相关文件
+
+- `src/pages/Dashboard.tsx`：优化 Dashboard 扫描反馈，把成功摘要、来源汇总和可折叠诊断分层展示。
+- `TASKS.md`：记录本次 Dashboard 扫描结果展示优化任务、验证结果和相关文件。

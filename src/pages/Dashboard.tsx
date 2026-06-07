@@ -23,6 +23,12 @@ export default function Dashboard() {
   const [scanWarnings, setScanWarnings] = useState<string[]>([]);
   const [scanNotices, setScanNotices] = useState<string[]>([]);
 
+  const rootReports = skillRegistry?.rootReports ?? [];
+  const availableRootReports = rootReports.filter(report => report.status === 'scanned');
+  const skippedRootReports = rootReports.filter(report => report.status !== 'scanned');
+  const availableRootCount = availableRootReports.length;
+  const skippedRootCount = skippedRootReports.length;
+
   const startScan = async () => {
     if (isScanning) return;
     setIsScanning(true);
@@ -222,16 +228,80 @@ export default function Dashboard() {
           </div>
 
           <div className="w-full font-mono text-sm text-muted">
-            <span>Last Scan: {lastScanTime || 'N/A'}</span>
-            <span className="mx-2">|</span>
-            <span>Detected: {skillRegistry?.skills.length ?? 'N/A'}</span>
-            {scanError && <div className="text-red-600 mt-2">ERROR: {scanError}</div>}
-            {scanWarnings.slice(0, 2).map(warning => (
-              <div key={warning} className="mt-2">WARN: {warning}</div>
-            ))}
-            {scanWarnings.length === 0 && scanNotices.slice(0, 2).map(notice => (
-              <div key={notice} className="mt-2">INFO: {notice}</div>
-            ))}
+            {scanError ? (
+              <div className="text-red-600">ERROR: {scanError}</div>
+            ) : skillRegistry ? (
+              <div className="space-y-3">
+                <div className="border border-solid border-ink p-4 text-ink bg-blueprint-blue-dim">
+                  <div className="flex flex-wrap items-baseline justify-between gap-3">
+                    <div>
+                      <div className="font-bold uppercase text-sm">Scan Complete</div>
+                      <div className="mt-1 text-muted">
+                        {skillRegistry.skills.length} local skills found from {availableRootCount} available {availableRootCount === 1 ? 'root' : 'roots'}.
+                      </div>
+                    </div>
+                    <div className="font-pixel text-title text-ink">{skillRegistry.skills.length}</div>
+                  </div>
+                  <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-caption uppercase text-muted">
+                    <span>Last Scan: {lastScanTime || 'N/A'}</span>
+                    <span>Available Roots: {availableRootCount}</span>
+                    <span>Skipped Optional Roots: {skippedRootCount}</span>
+                  </div>
+                </div>
+
+                {rootReports.length > 0 && (
+                  <details className="border border-dotted border-border-subtle p-4 group">
+                    <summary className="cursor-pointer select-none text-ink uppercase font-bold">
+                      View Scan Details
+                    </summary>
+                    <div className="mt-4 overflow-x-auto">
+                      <table className="w-full text-left min-w-[640px]">
+                        <thead className="text-caption uppercase text-muted border-b border-solid border-border-subtle">
+                          <tr>
+                            <th className="pb-2 pr-4 font-normal">Root</th>
+                            <th className="pb-2 pr-4 font-normal">Status</th>
+                            <th className="pb-2 text-right font-normal">Skills</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {rootReports.map(report => (
+                            <tr key={report.root} className="border-b border-dotted border-border-subtle last:border-b-0">
+                              <td className="py-2 pr-4 break-all text-ink">{report.root}</td>
+                              <td className={`py-2 pr-4 uppercase ${report.status === 'scanned' ? 'text-blueprint-blue font-bold' : 'text-muted'}`}>
+                                {report.status === 'scanned' ? 'Available' : 'Skipped'}
+                                {report.status !== 'scanned' && (
+                                  <div className="normal-case text-caption text-muted">
+                                    Optional root not present or unreadable.
+                                  </div>
+                                )}
+                              </td>
+                              <td className="py-2 text-right text-ink">{report.skillFiles}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+
+                    {(scanWarnings.length > 0 || scanNotices.length > 0) && (
+                      <div className="mt-4 border-t border-dotted border-border-subtle pt-3 text-caption leading-relaxed">
+                        {scanWarnings.map(warning => (
+                          <div key={warning} className="text-red-600">WARN: {warning}</div>
+                        ))}
+                        {scanNotices.map(notice => (
+                          <div key={notice}>INFO: {notice}</div>
+                        ))}
+                      </div>
+                    )}
+                  </details>
+                )}
+              </div>
+            ) : (
+              <div>
+                <span>Last Scan: {lastScanTime || 'N/A'}</span>
+                <span className="mx-2">|</span>
+                <span>Detected: N/A</span>
+              </div>
+            )}
           </div>
         </div>
       </section>
